@@ -14,5 +14,8 @@ namespace DockIQ.Core
         public const float DefaultTickSeconds = 0.45f;
 
         public const int TotalLevels = 5;
+
+        /// <summary>Board is rendered in classic 2:1 isometric 2D (see IsoMath).</summary>
+        public const bool UseIsometricView = true;
     }
 }

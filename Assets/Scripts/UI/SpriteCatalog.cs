@@ -16,19 +16,19 @@ namespace DockIQ.UI
         }
 
         public static Sprite BeltOrFallback() =>
-            Load("Sprites/Belts/belt_straight") ?? PlaceholderArt.WhiteSquare();
+            Load("Sprites/Belts/belt_straight") ?? PlaceholderArt.IsoDiamond();
 
         public static Sprite SwitchOrFallback() =>
-            Load("Sprites/Devices/switch") ?? PlaceholderArt.WhiteSquare();
+            Load("Sprites/Devices/switch") ?? PlaceholderArt.IsoDiamond();
 
         public static Sprite SplitterOrFallback() =>
-            Load("Sprites/Devices/splitter") ?? PlaceholderArt.WhiteSquare();
+            Load("Sprites/Devices/splitter") ?? PlaceholderArt.IsoDiamond();
 
         public static Sprite ParcelOrFallback(bool vip) =>
             Load(vip ? "Sprites/Parcels/parcel_vip" : "Sprites/Parcels/parcel")
             ?? PlaceholderArt.WhiteSquare();
 
         public static Sprite DockOrFallback() =>
-            Load("Sprites/Docks/dock") ?? PlaceholderArt.WhiteSquare();
+            Load("Sprites/Docks/dock") ?? PlaceholderArt.IsoDiamond();
     }
 }

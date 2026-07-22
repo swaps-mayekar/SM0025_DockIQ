@@ -25,7 +25,7 @@ namespace DockIQ.Board
 
         public static Dir Opposite(Dir dir) => (Dir)(((int)dir + 2) % 4);
 
-        /// <summary>Z rotation for a sprite that points North by default.</summary>
+        /// <summary>Top-down Z rotation (legacy). Prefer <see cref="IsoMath.DirToZDegrees"/> for board view.</summary>
         public static float ToZDegrees(Dir dir) => -(int)dir * 90f;
 
         public static Dir FromChar(char c) => c switch

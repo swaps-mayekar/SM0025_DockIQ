@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DockIQ.Gameplay
 {
-    /// <summary>Builds and refreshes top-down cell visuals.</summary>
+    /// <summary>Builds and refreshes isometric 2D cell visuals.</summary>
     public sealed class BoardView : MonoBehaviour
     {
         private GridBoard _board;
@@ -34,33 +34,39 @@ namespace DockIQ.Gameplay
                     continue;
 
                 Vector3 pos = board.CellToWorld(new Vector2Int(x, y), 0f);
-                var tile = CreateSprite($"Cell_{x}_{y}", pos, 0);
+                int depth = IsoMath.DepthOrder(x, y);
+
+                var tile = CreateSprite($"Cell_{x}_{y}", pos, depth);
                 tile.sprite = SpriteFor(cell);
                 tile.color = ColorFor(cell);
-                tile.transform.localScale = Vector3.one * (board.CellSize * 0.92f);
+                // Diamond sprite is authored at TileWidth world units
+                tile.transform.localScale = Vector3.one * board.CellSize;
                 _tiles[x, y] = tile;
 
                 if (cell.Type != CellType.Dock)
                 {
-                    var arrow = CreateSprite($"Arrow_{x}_{y}", pos + Vector3.back * 0.01f, 1);
+                    var arrow = CreateSprite($"Arrow_{x}_{y}", pos + new Vector3(0f, 0.08f, 0f), depth + 1);
                     arrow.sprite = PlaceholderArt.WhiteSquare();
                     arrow.color = PlaceholderArt.Hazard;
-                    arrow.transform.localScale = new Vector3(0.18f, 0.45f, 1f);
-                    arrow.transform.rotation = Quaternion.Euler(0f, 0f, DirUtil.ToZDegrees(cell.GetExitDir()));
+                    arrow.transform.localScale = new Vector3(0.12f, 0.28f, 1f);
+                    arrow.transform.rotation = Quaternion.Euler(0f, 0f, IsoMath.DirToZDegrees(cell.GetExitDir()));
                     _arrows[x, y] = arrow;
                 }
                 else
                 {
                     var labelGo = new GameObject($"DockLabel_{cell.DockId}");
                     labelGo.transform.SetParent(_root, false);
-                    labelGo.transform.position = pos + Vector3.back * 0.02f;
+                    labelGo.transform.position = pos + new Vector3(0f, 0.12f, 0f);
                     var tm = labelGo.AddComponent<TextMesh>();
                     tm.text = cell.DockId.ToString();
                     tm.anchor = TextAnchor.MiddleCenter;
                     tm.alignment = TextAlignment.Center;
-                    tm.characterSize = 0.15f;
+                    tm.characterSize = 0.12f;
                     tm.fontSize = 48;
                     tm.color = Color.white;
+                    var mr = labelGo.GetComponent<MeshRenderer>();
+                    if (mr != null)
+                        mr.sortingOrder = depth + 2;
                     _dockLabels[x, y] = tm;
                 }
             }
@@ -79,7 +85,7 @@ namespace DockIQ.Gameplay
                 if (arrow == null)
                     continue;
 
-                arrow.transform.rotation = Quaternion.Euler(0f, 0f, DirUtil.ToZDegrees(cell.GetExitDir()));
+                arrow.transform.rotation = Quaternion.Euler(0f, 0f, IsoMath.DirToZDegrees(cell.GetExitDir()));
                 if (cell.IsInteractive)
                     arrow.color = PlaceholderArt.Hazard;
             }
@@ -100,7 +106,7 @@ namespace DockIQ.Gameplay
             go.transform.SetParent(_root, false);
             go.transform.position = pos;
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = PlaceholderArt.WhiteSquare();
+            sr.sprite = PlaceholderArt.IsoDiamond();
             sr.sortingOrder = order;
             return sr;
         }

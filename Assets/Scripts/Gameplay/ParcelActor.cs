@@ -23,14 +23,18 @@ namespace DockIQ.Gameplay
             transform.position = worldPos;
             _from = _to = worldPos;
 
-            _body = CreateChild("Body", 2);
+            // Slight billboard lift so parcels sit "on" the diamond floor
+            _body = CreateChild("Body", IsoMath.DepthOrder(cell, 5));
             _body.sprite = UI.SpriteCatalog.ParcelOrFallback(isVip);
             _body.color = isVip ? UI.PlaceholderArt.VipGold : UI.PlaceholderArt.ParcelBrown;
-            transform.localScale = Vector3.one * 0.55f;
+            // Squash slightly for a cheap isometric crate look
+            transform.localScale = new Vector3(0.42f, 0.36f, 1f);
+            transform.position = worldPos + new Vector3(0f, 0.12f, 0f);
+            _from = _to = transform.position;
 
             if (isVip)
             {
-                _outline = CreateChild("Outline", 1);
+                _outline = CreateChild("Outline", IsoMath.DepthOrder(cell, 4));
                 _outline.sprite = UI.PlaceholderArt.WhiteSquare();
                 _outline.color = new Color(1f, 0.9f, 0.2f, 0.55f);
                 _outline.transform.localScale = Vector3.one * 1.25f;
@@ -41,32 +45,41 @@ namespace DockIQ.Gameplay
         {
             Cell = next;
             _from = transform.position;
-            _to = worldPos;
+            _to = worldPos + new Vector3(0f, 0.12f, 0f);
             _t = 0f;
             _moving = true;
+            ApplyDepth();
         }
 
         public void MarkArrived() => Arrived = true;
 
         public void TickVisual(float duration)
         {
-            if (!_moving)
-                return;
-
-            _t += Time.deltaTime / Mathf.Max(0.01f, duration);
-            if (_t >= 1f)
+            if (_moving)
             {
-                _t = 1f;
-                _moving = false;
-            }
+                _t += Time.deltaTime / Mathf.Max(0.01f, duration);
+                if (_t >= 1f)
+                {
+                    _t = 1f;
+                    _moving = false;
+                }
 
-            transform.position = Vector3.Lerp(_from, _to, Mathf.SmoothStep(0f, 1f, _t));
+                transform.position = Vector3.Lerp(_from, _to, Mathf.SmoothStep(0f, 1f, _t));
+            }
 
             if (IsVip && _outline != null)
             {
                 float pulse = 1.2f + Mathf.Sin(Time.time * 6f) * 0.08f;
                 _outline.transform.localScale = Vector3.one * pulse;
             }
+        }
+
+        private void ApplyDepth()
+        {
+            if (_body != null)
+                _body.sortingOrder = IsoMath.DepthOrder(Cell, 5);
+            if (_outline != null)
+                _outline.sortingOrder = IsoMath.DepthOrder(Cell, 4);
         }
 
         private SpriteRenderer CreateChild(string name, int sorting)

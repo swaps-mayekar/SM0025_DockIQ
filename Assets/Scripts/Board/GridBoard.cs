@@ -8,7 +8,9 @@ namespace DockIQ.Board
         public int Width { get; private set; }
         public int Height { get; private set; }
         public float CellSize { get; private set; }
-        public Vector2 Origin { get; private set; }
+
+        /// <summary>World offset so the isometric board is centered at origin.</summary>
+        public Vector3 Origin { get; private set; }
 
         private CellData[,] _cells;
 
@@ -35,9 +37,10 @@ namespace DockIQ.Board
             }
 
             CellSize = cellSize;
-            Origin = new Vector2(
-                -(Width - 1) * cellSize * 0.5f,
-                -(Height - 1) * cellSize * 0.5f);
+
+            IsoMath.GetBounds(Width, Height, out Vector2 min, out Vector2 max);
+            Vector2 center = (min + max) * 0.5f;
+            Origin = new Vector3(-center.x, -center.y, 0f);
 
             _cells = new CellData[Width, Height];
             for (int y = 0; y < Height; y++)
@@ -51,19 +54,14 @@ namespace DockIQ.Board
 
         public Vector3 CellToWorld(Vector2Int cell, float z = 0f)
         {
-            return new Vector3(
-                Origin.x + cell.x * CellSize,
-                Origin.y + cell.y * CellSize,
-                z);
+            Vector3 local = IsoMath.CellToWorld(cell.x, cell.y, z);
+            return Origin + local;
         }
 
         public bool TryWorldToCell(Vector3 world, out Vector2Int cell)
         {
-            float lx = (world.x - Origin.x) / CellSize;
-            float ly = (world.y - Origin.y) / CellSize;
-            int x = Mathf.RoundToInt(lx);
-            int y = Mathf.RoundToInt(ly);
-            cell = new Vector2Int(x, y);
+            Vector3 local = world - Origin;
+            cell = IsoMath.WorldToCell(local);
             return InBounds(cell);
         }
 

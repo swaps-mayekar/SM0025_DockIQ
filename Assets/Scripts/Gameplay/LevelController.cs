@@ -229,12 +229,16 @@ namespace DockIQ.Gameplay
             if (_cam == null)
                 return;
 
-            float halfW = _board.Width * _board.CellSize * 0.5f + 0.75f;
-            float halfH = _board.Height * _board.CellSize * 0.5f + 1.5f;
+            IsoMath.GetBounds(_board.Width, _board.Height, out Vector2 min, out Vector2 max);
+            // Bounds are local; board Origin already centers them at world 0
+            float spanX = (max.x - min.x) * 0.5f + 0.6f;
+            float spanY = (max.y - min.y) * 0.5f + 1.4f;
+
             _cam.orthographic = true;
-            _cam.orthographicSize = Mathf.Max(halfH, halfW / Mathf.Max(0.1f, _cam.aspect));
+            _cam.orthographicSize = Mathf.Max(spanY, spanX / Mathf.Max(0.1f, _cam.aspect));
             _cam.backgroundColor = PlaceholderArt.Navy;
-            _cam.transform.position = new Vector3(0f, 0.3f, -10f);
+            // Slight upward bias so HUD does not cover the board
+            _cam.transform.position = new Vector3(0f, -0.15f, -10f);
         }
     }
 }
