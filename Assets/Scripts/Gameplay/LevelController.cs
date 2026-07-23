@@ -34,14 +34,14 @@ namespace DockIQ.Gameplay
             _cam = Camera.main;
 
             _board = new GridBoard();
-            _board.Build(level.Rows, GameConstants.DefaultCellSize);
+            _board.Build(level.ResolveLayers(), level.Movables, GameConstants.DefaultCellSize);
 
             if (_view == null)
                 _view = gameObject.AddComponent<BoardView>();
             _view.Build(_board);
 
             ClearRobots();
-            SpawnRobot(level.RobotStart, level.RobotFacing, true, level.RobotCallsign);
+            SpawnRobot(level.RobotCoord, level.RobotFacing, true, level.RobotCallsign);
             if (level.DecoyStarts != null)
             {
                 for (int i = 0; i < level.DecoyStarts.Length; i++)
@@ -49,7 +49,7 @@ namespace DockIQ.Gameplay
                     Dir face = level.DecoyFacings != null && i < level.DecoyFacings.Length
                         ? level.DecoyFacings[i]
                         : Dir.East;
-                    SpawnRobot(level.DecoyStarts[i], face, false, $"#X{i + 1}");
+                    SpawnRobot(level.DecoyCoord(i), face, false, $"#X{i + 1}");
                 }
             }
 
@@ -92,15 +92,37 @@ namespace DockIQ.Gameplay
         {
             if (!TryGetTapWorld(out Vector3 world))
                 return;
-            if (!_board.TryWorldToCell(world, out Vector2Int cell))
+            if (!_board.TryWorldToCell(world, out CellCoord cell))
                 return;
 
             var data = _board.Get(cell);
+
+            if (data.MovableId >= 0)
+            {
+                if (_board.TryAdvanceMovable(data.MovableId, IsRobotOn))
+                    _view.Build(_board);
+                else
+                    _view.RefreshDevices();
+                return;
+            }
+
             if (!data.IsInteractive)
                 return;
 
             data.OnTap();
             _view.RefreshDevices();
+        }
+
+        private bool IsRobotOn(CellCoord c)
+        {
+            for (int i = 0; i < _robots.Count; i++)
+            {
+                var r = _robots[i];
+                if (!r.Arrived && r.Coord == c)
+                    return true;
+            }
+
+            return false;
         }
 
         private bool TryGetTapWorld(out Vector3 world)
@@ -149,32 +171,35 @@ namespace DockIQ.Gameplay
                 if (robot.Arrived)
                     continue;
 
-                var cell = _board.Get(robot.Cell);
+                var cell = _board.Get(robot.Coord);
                 if (cell.IsDock)
                 {
                     ResolveDock(robot, cell);
                     continue;
                 }
 
-                if (!_board.TryStep(robot.Cell, robot.Facing, out Vector2Int next, out Dir newFacing,
-                        robot.SuppressLift))
+                if (!_board.TryStep(robot.Coord, robot.Facing, out CellCoord next, out Dir newFacing,
+                        out bool clash, robot.SuppressLift))
                 {
-                    // Rescue robot stuck on closed bridge / dead end — keep waiting
                     continue;
                 }
 
-                bool stayedOnPad = next == robot.Cell;
-                bool usedLift = _board.Get(robot.Cell).IsLift && !robot.SuppressLift;
+                if (clash)
+                {
+                    Fail("Collision in the yard!");
+                    return;
+                }
+
+                bool stayedOnPad = next == robot.Coord;
+                bool usedTransfer = (cell.IsLift || cell.IsElevator) && !robot.SuppressLift;
 
                 if (stayedOnPad)
                 {
-                    // Landed on arrival lift with no exit — don't re-teleport next tick.
-                    if (usedLift)
+                    if (usedTransfer)
                         robot.SuppressLift = true;
                     continue;
                 }
 
-                // Left a lift pad (or any cell) — clear suppress.
                 robot.SuppressLift = false;
                 robot.BeginMove(next, newFacing, _board.CellToWorld(next, -0.1f));
 
@@ -218,7 +243,7 @@ namespace DockIQ.Gameplay
             _hud.ShowResult(false, reason, false);
         }
 
-        private void SpawnRobot(Vector2Int cell, Dir facing, bool rescue, string callsign)
+        private void SpawnRobot(CellCoord cell, Dir facing, bool rescue, string callsign)
         {
             if (!_board.InBounds(cell) || !_board.Get(cell).IsTraversable)
             {
@@ -226,7 +251,6 @@ namespace DockIQ.Gameplay
                 return;
             }
 
-            // Prefer authored facing on spawn/track cells
             var data = _board.Get(cell);
             if (data.Type == CellType.Spawn || data.Type == CellType.Track)
                 facing = data.Facing;
@@ -254,7 +278,7 @@ namespace DockIQ.Gameplay
             if (_cam == null)
                 return;
 
-            IsoMath.GetBounds(_board.Width, _board.Height, out Vector2 min, out Vector2 max);
+            IsoMath.GetBounds(_board.Width, _board.Height, _board.LayerCount, out Vector2 min, out Vector2 max);
             float spanX = (max.x - min.x) * 0.5f + 0.6f;
             float spanY = (max.y - min.y) * 0.5f + 1.4f;
 

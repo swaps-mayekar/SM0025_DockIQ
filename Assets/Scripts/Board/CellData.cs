@@ -8,16 +8,35 @@ namespace DockIQ.Board
         public Dir Facing;
         public int DockId;
         public int LiftPairId = -1;
-        public Vector2Int LiftTarget;
+        public int ElevatorPairId = -1;
+        public CellCoord LiftTarget;
+        public CellCoord ElevatorTarget;
         public IDevice Device;
+        public int MovableId = -1;
 
         public bool IsTraversable => Type != CellType.Empty;
 
-        public bool IsInteractive => Device != null && Device.CanInteract;
+        public bool IsInteractive =>
+            (Device != null && Device.CanInteract) || MovableId >= 0;
 
         public bool IsDock => Type == CellType.Dock;
 
         public bool IsLift => Type == CellType.Lift;
+
+        public bool IsElevator => Type == CellType.Elevator;
+
+        /// <summary>Robot entering this cell should fail the level.</summary>
+        public bool IsClashHazard
+        {
+            get
+            {
+                if (Device is ObstacleDevice obs && obs.Blocks)
+                    return true;
+                if (Device is LiftableDevice lift && lift.Blocks)
+                    return true;
+                return false;
+            }
+        }
 
         public Dir GetDisplayDir()
         {
@@ -31,7 +50,6 @@ namespace DockIQ.Board
             if (Device != null)
                 return Device.TryResolveExit(entryDir, out exitDir);
 
-            // Straight track / spawn: keep driving in current facing.
             exitDir = entryDir;
             return true;
         }

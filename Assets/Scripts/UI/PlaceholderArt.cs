@@ -27,6 +27,10 @@ namespace DockIQ.UI
         public static readonly Color BridgeClosed = new Color(0.55f, 0.22f, 0.20f, 1f);
         public static readonly Color BridgeOpen = new Color(0.30f, 0.55f, 0.75f, 1f);
         public static readonly Color LiftPad = new Color(0.55f, 0.35f, 0.75f, 1f);
+        public static readonly Color Elevator = new Color(0.35f, 0.70f, 0.85f, 1f);
+        public static readonly Color Reflector = new Color(0.70f, 0.85f, 0.95f, 1f);
+        public static readonly Color Obstacle = new Color(0.75f, 0.25f, 0.22f, 1f);
+        public static readonly Color LiftableUp = new Color(0.45f, 0.55f, 0.35f, 1f);
         public static readonly Color Rotator = new Color(0.75f, 0.55f, 0.20f, 1f);
         public static readonly Color Panel = new Color(0.08f, 0.14f, 0.22f, 0.92f);
         public static readonly Color Text = Color.white;

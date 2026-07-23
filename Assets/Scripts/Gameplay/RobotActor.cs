@@ -6,14 +6,16 @@ namespace DockIQ.Gameplay
     /// <summary>Tiny warehouse robot that drives continuously on tracks.</summary>
     public sealed class RobotActor : MonoBehaviour
     {
-        public Vector2Int Cell { get; private set; }
+        public CellCoord Coord { get; private set; }
+        public Vector2Int Cell => Coord.XY;
+        public int Layer => Coord.Layer;
         public Dir Facing { get; private set; }
         public bool IsRescue { get; private set; }
         public bool Arrived { get; private set; }
         public string Callsign { get; private set; }
 
         /// <summary>
-        /// After a lift drop that could not step off, ignore teleport for one tick.
+        /// After a lift/elevator drop that could not step off, ignore transfer for one tick.
         /// </summary>
         public bool SuppressLift { get; set; }
 
@@ -24,9 +26,9 @@ namespace DockIQ.Gameplay
         private float _t;
         private bool _moving;
 
-        public void Init(Vector2Int cell, Dir facing, bool isRescue, string callsign, Vector3 worldPos)
+        public void Init(CellCoord cell, Dir facing, bool isRescue, string callsign, Vector3 worldPos)
         {
-            Cell = cell;
+            Coord = cell;
             Facing = facing;
             IsRescue = isRescue;
             Callsign = callsign;
@@ -48,9 +50,9 @@ namespace DockIQ.Gameplay
             }
         }
 
-        public void BeginMove(Vector2Int next, Dir newFacing, Vector3 worldPos)
+        public void BeginMove(CellCoord next, Dir newFacing, Vector3 worldPos)
         {
-            Cell = next;
+            Coord = next;
             Facing = newFacing;
             _from = transform.position;
             _to = worldPos + new Vector3(0f, 0.14f, 0f);
@@ -93,9 +95,9 @@ namespace DockIQ.Gameplay
         private void ApplyDepth()
         {
             if (_body != null)
-                _body.sortingOrder = IsoMath.DepthOrder(Cell, 5);
+                _body.sortingOrder = IsoMath.DepthOrder(Coord, 5);
             if (_outline != null)
-                _outline.sortingOrder = IsoMath.DepthOrder(Cell, 4);
+                _outline.sortingOrder = IsoMath.DepthOrder(Coord, 4);
         }
 
         private SpriteRenderer CreateChild(string name, int sorting)

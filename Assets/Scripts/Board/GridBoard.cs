@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DockIQ.Levels;
 using UnityEngine;
 
 namespace DockIQ.Board
@@ -8,59 +9,94 @@ namespace DockIQ.Board
     {
         public int Width { get; private set; }
         public int Height { get; private set; }
+        public int LayerCount { get; private set; }
         public float CellSize { get; private set; }
         public Vector3 Origin { get; private set; }
 
-        private CellData[,] _cells;
+        private CellData[,,] _cells; // [layer, x, y]
+        private readonly List<MovablePiece> _movables = new List<MovablePiece>();
 
-        public CellData Get(int x, int y) => _cells[x, y];
+        public IReadOnlyList<MovablePiece> Movables => _movables;
 
-        public CellData Get(Vector2Int p) => _cells[p.x, p.y];
+        public CellData Get(int layer, int x, int y) => _cells[layer, x, y];
 
-        public bool InBounds(int x, int y) =>
+        public CellData Get(CellCoord p) => _cells[p.Layer, p.X, p.Y];
+
+        public bool InBounds(int layer, int x, int y) =>
+            layer >= 0 && layer < LayerCount &&
             x >= 0 && y >= 0 && x < Width && y < Height;
 
-        public bool InBounds(Vector2Int p) => InBounds(p.x, p.y);
+        public bool InBounds(CellCoord p) => InBounds(p.Layer, p.X, p.Y);
 
-        public void Build(string[] rows, float cellSize = 1f)
+        public void Build(string[][] layers, MovableDef[] movables = null, float cellSize = 1f)
         {
-            if (rows == null || rows.Length == 0)
-                throw new ArgumentException("Level rows required");
+            if (layers == null || layers.Length == 0)
+                throw new ArgumentException("Level layers required");
 
-            Height = rows.Length;
-            Width = rows[0].Length;
-            for (int r = 0; r < rows.Length; r++)
+            LayerCount = layers.Length;
+            var ground = layers[0];
+            if (ground == null || ground.Length == 0)
+                throw new ArgumentException("Layer 0 rows required");
+
+            Height = ground.Length;
+            Width = ground[0].Length;
+
+            for (int L = 0; L < LayerCount; L++)
             {
-                if (rows[r].Length != Width)
-                    throw new ArgumentException($"Row {r} width mismatch");
+                var rows = layers[L];
+                if (rows == null || rows.Length != Height)
+                    throw new ArgumentException($"Layer {L} height mismatch");
+                for (int r = 0; r < rows.Length; r++)
+                {
+                    if (rows[r].Length != Width)
+                        throw new ArgumentException($"Layer {L} row {r} width mismatch");
+                }
             }
 
             CellSize = cellSize;
 
-            IsoMath.GetBounds(Width, Height, out Vector2 min, out Vector2 max);
+            IsoMath.GetBounds(Width, Height, LayerCount, out Vector2 min, out Vector2 max);
             Vector2 center = (min + max) * 0.5f;
             Origin = new Vector3(-center.x, -center.y, 0f);
 
-            _cells = new CellData[Width, Height];
-            var liftsByPair = new Dictionary<int, List<Vector2Int>>();
+            _cells = new CellData[LayerCount, Width, Height];
+            var liftsByPair = new Dictionary<int, List<CellCoord>>();
+            var elevatorsByPair = new Dictionary<int, List<CellCoord>>();
 
-            for (int y = 0; y < Height; y++)
+            for (int L = 0; L < LayerCount; L++)
             {
-                int rowIndex = Height - 1 - y;
-                string row = rows[rowIndex];
-                for (int x = 0; x < Width; x++)
+                var rows = layers[L];
+                for (int y = 0; y < Height; y++)
                 {
-                    _cells[x, y] = ParseCell(row[x]);
-                    if (_cells[x, y].IsLift)
+                    int rowIndex = Height - 1 - y;
+                    string row = rows[rowIndex];
+                    for (int x = 0; x < Width; x++)
                     {
-                        int pair = _cells[x, y].LiftPairId;
-                        if (!liftsByPair.TryGetValue(pair, out var list))
+                        var cell = ParseCell(row[x]);
+                        _cells[L, x, y] = cell;
+                        var coord = new CellCoord(x, y, L);
+
+                        if (cell.IsLift)
                         {
-                            list = new List<Vector2Int>();
-                            liftsByPair[pair] = list;
+                            if (!liftsByPair.TryGetValue(cell.LiftPairId, out var list))
+                            {
+                                list = new List<CellCoord>();
+                                liftsByPair[cell.LiftPairId] = list;
+                            }
+
+                            list.Add(coord);
                         }
 
-                        list.Add(new Vector2Int(x, y));
+                        if (cell.IsElevator)
+                        {
+                            if (!elevatorsByPair.TryGetValue(cell.ElevatorPairId, out var elist))
+                            {
+                                elist = new List<CellCoord>();
+                                elevatorsByPair[cell.ElevatorPairId] = elist;
+                            }
+
+                            elist.Add(coord);
+                        }
                     }
                 }
             }
@@ -77,9 +113,124 @@ namespace DockIQ.Board
                 LinkLift(pads[0], pads[1]);
                 LinkLift(pads[1], pads[0]);
             }
+
+            foreach (var kv in elevatorsByPair)
+            {
+                var pads = kv.Value;
+                if (pads.Count != 2)
+                {
+                    Debug.LogWarning($"Elevator pair {kv.Key} has {pads.Count} pads (need 2)");
+                    continue;
+                }
+
+                LinkElevator(pads[0], pads[1]);
+                LinkElevator(pads[1], pads[0]);
+            }
+
+            _movables.Clear();
+            if (movables != null)
+            {
+                for (int i = 0; i < movables.Length; i++)
+                    PlaceMovable(i, movables[i]);
+            }
         }
 
-        private void LinkLift(Vector2Int from, Vector2Int to)
+        public void Build(string[] rows, float cellSize = 1f) =>
+            Build(new[] { rows }, null, cellSize);
+
+        private void PlaceMovable(int id, MovableDef def)
+        {
+            if (def?.Path == null || def.Path.Length == 0)
+            {
+                Debug.LogWarning($"Movable {id} has empty path");
+                return;
+            }
+
+            IDevice device = def.Kind switch
+            {
+                'R' or 'r' => new RotatorDevice(def.RotatorMode),
+                'm' or 'M' => new ReflectorDevice(),
+                'O' or 'o' => new ObstacleDevice(),
+                _ => new ObstacleDevice()
+            };
+
+            // Reflectors/obstacles on movables need interact for path cycle via MovableId
+            var piece = new MovablePiece(id, def, device);
+            foreach (var slot in piece.Path)
+            {
+                if (!InBounds(slot))
+                {
+                    Debug.LogWarning($"Movable {id} path slot out of bounds: {slot}");
+                    return;
+                }
+            }
+
+            _movables.Add(piece);
+            AttachMovable(piece);
+        }
+
+        private void AttachMovable(MovablePiece piece)
+        {
+            var cell = Get(piece.Current);
+            if (!cell.IsTraversable)
+                Debug.LogWarning($"Movable {piece.Id} on non-traversable {piece.Current}");
+
+            // Preserve track under movable; overlay device + id
+            if (cell.Type == CellType.Empty)
+                cell.Type = CellType.Track;
+
+            if (piece.Kind == 'R' || piece.Kind == 'r')
+                cell.Type = CellType.Rotator;
+            else if (piece.Kind == 'm' || piece.Kind == 'M')
+                cell.Type = CellType.Reflector;
+            else
+                cell.Type = CellType.Obstacle;
+
+            cell.Device = piece.Device;
+            cell.MovableId = piece.Id;
+        }
+
+        private void DetachMovable(MovablePiece piece, CellCoord at)
+        {
+            if (!InBounds(at))
+                return;
+            var cell = Get(at);
+            if (cell.MovableId != piece.Id)
+                return;
+
+            cell.Device = null;
+            cell.MovableId = -1;
+            if (cell.Type == CellType.Rotator || cell.Type == CellType.Reflector ||
+                cell.Type == CellType.Obstacle)
+                cell.Type = CellType.Track;
+        }
+
+        /// <summary>Advance movable if next slot is free of robots and other movables.</summary>
+        public bool TryAdvanceMovable(int id, Func<CellCoord, bool> isRobotOn)
+        {
+            if (id < 0 || id >= _movables.Count)
+                return false;
+
+            var piece = _movables[id];
+            var snap = piece.Capture();
+
+            if (!piece.TryAdvance(out CellCoord from, out CellCoord to, out bool rotatedOnly))
+                return rotatedOnly;
+
+            var dest = Get(to);
+            if ((dest.MovableId >= 0 && dest.MovableId != piece.Id) ||
+                (isRobotOn != null && isRobotOn(to)))
+            {
+                piece.Restore(snap);
+                return false;
+            }
+
+            DetachMovable(piece, from);
+            AttachMovable(piece);
+            return true;
+        }
+
+        private void LinkLift(CellCoord from, CellCoord to)
         {
             var cell = Get(from);
             cell.LiftTarget = to;
@@ -87,28 +238,77 @@ namespace DockIQ.Board
                 lift.LinkedCell = to;
         }
 
-        public Vector3 CellToWorld(Vector2Int cell, float z = 0f)
+        private void LinkElevator(CellCoord from, CellCoord to)
         {
-            Vector3 local = IsoMath.CellToWorld(cell.x, cell.y, z);
+            var cell = Get(from);
+            cell.ElevatorTarget = to;
+            if (cell.Device is ElevatorDevice elev)
+                elev.LinkedCell = to;
+        }
+
+        public Vector3 CellToWorld(CellCoord cell, float z = 0f)
+        {
+            Vector3 local = IsoMath.CellToWorld(cell, z);
             return Origin + local;
         }
 
-        public bool TryWorldToCell(Vector3 world, out Vector2Int cell)
+        public Vector3 CellToWorld(Vector2Int cell, float z = 0f) =>
+            CellToWorld(CellCoord.From(cell), z);
+
+        /// <summary>
+        /// Map world tap to a cell, preferring upper floors and interactive tiles.
+        /// </summary>
+        public bool TryWorldToCell(Vector3 world, out CellCoord cell)
         {
+            cell = default;
             Vector3 local = world - Origin;
-            cell = IsoMath.WorldToCell(local);
-            return InBounds(cell);
+            CellCoord best = default;
+            bool found = false;
+            float bestDist = float.MaxValue;
+
+            for (int L = LayerCount - 1; L >= 0; L--)
+            {
+                Vector2Int xy = IsoMath.WorldToCell(local, L);
+                if (!InBounds(L, xy.x, xy.y))
+                    continue;
+
+                var cand = new CellCoord(xy.x, xy.y, L);
+                var data = Get(cand);
+                if (!data.IsTraversable)
+                    continue;
+
+                Vector3 center = IsoMath.CellToWorld(cand);
+                float dist = Vector2.Distance(new Vector2(local.x, local.y), new Vector2(center.x, center.y));
+                bool interactive = data.IsInteractive;
+                bool bestInteractive = found && Get(best).IsInteractive;
+
+                if (!found ||
+                    (interactive && !bestInteractive) ||
+                    (interactive == bestInteractive && dist < bestDist) ||
+                    (interactive == bestInteractive && Mathf.Approximately(dist, bestDist) && L > best.Layer))
+                {
+                    found = true;
+                    best = cand;
+                    bestDist = dist;
+                }
+            }
+
+            if (!found || bestDist > 0.55f)
+                return false;
+
+            cell = best;
+            return true;
         }
 
         /// <summary>
-        /// Advance a robot one cell along tracks. Updates facing when redirected.
+        /// Advance a robot one cell. <paramref name="clash"/> is set when stepping onto a hazard.
         /// </summary>
-        /// <param name="suppressLift">If true, treat current lift pad as a normal tile (no teleport).</param>
-        public bool TryStep(Vector2Int from, Dir facing, out Vector2Int next, out Dir newFacing,
-            bool suppressLift = false)
+        public bool TryStep(CellCoord from, Dir facing, out CellCoord next, out Dir newFacing,
+            out bool clash, bool suppressTransfer = false)
         {
             next = from;
             newFacing = facing;
+            clash = false;
 
             if (!InBounds(from))
                 return false;
@@ -117,53 +317,47 @@ namespace DockIQ.Board
             if (!data.IsTraversable || data.IsDock)
                 return false;
 
-            // Lift: teleport to linked pad, then immediately leave that pad
-            // in the travel direction so we never bounce A↔a forever.
-            if (data.IsLift && !suppressLift)
-                return TryExitLift(data.LiftTarget, facing, out next, out newFacing);
+            if (data.IsElevator && !suppressTransfer)
+                return TryExitTransfer(data.ElevatorTarget, facing, out next, out newFacing, out clash);
+
+            if (data.IsLift && !suppressTransfer)
+                return TryExitTransfer(data.LiftTarget, facing, out next, out newFacing, out clash);
 
             if (!data.TryResolveExit(facing, out Dir exit))
-                return false; // e.g. closed bridge
+                return false;
 
-            // On a lift with suppress: leave via facing, never re-teleport.
             newFacing = exit;
-            next = from + DirUtil.ToOffset(exit);
-            return CanEnter(next);
+            next = from.WithOffset(DirUtil.ToOffset(exit));
+            return TryEnter(next, out clash);
         }
 
-        /// <summary>
-        /// Arrive on a lift pad and continue off it (pass-through transfer).
-        /// </summary>
-        /// <returns>
-        /// True if transfer resolved. <paramref name="landedOnPad"/> is true when
-        /// the robot had to stop on the arrival pad (no valid exit).
-        /// </returns>
-        private bool TryExitLift(Vector2Int pad, Dir facing, out Vector2Int next, out Dir newFacing)
+        private bool TryExitTransfer(CellCoord pad, Dir facing, out CellCoord next, out Dir newFacing,
+            out bool clash)
         {
             next = pad;
             newFacing = facing;
+            clash = false;
 
             if (!InBounds(pad) || !Get(pad).IsTraversable)
                 return false;
 
-            // Leave along travel facing — do not trigger the destination lift's teleport.
             Dir exit = facing;
-            Vector2Int after = pad + DirUtil.ToOffset(exit);
-            if (CanEnter(after) && !Get(after).IsLift)
+            CellCoord after = pad.WithOffset(DirUtil.ToOffset(exit));
+            if (CanEnterIgnoringHazard(after) && !Get(after).IsLift && !Get(after).IsElevator)
             {
                 next = after;
                 newFacing = exit;
-                return true;
+                return TryEnter(next, out clash);
             }
 
-            // Stay on arrival pad; caller should suppress lift next tick.
             next = pad;
             newFacing = facing;
-            return true;
+            return TryEnter(next, out clash);
         }
 
-        private bool CanEnter(Vector2Int cell)
+        private bool TryEnter(CellCoord cell, out bool clash)
         {
+            clash = false;
             if (!InBounds(cell))
                 return false;
 
@@ -176,6 +370,39 @@ namespace DockIQ.Board
                 !bridge.IsOpen)
                 return false;
 
+            if (dest.IsClashHazard)
+            {
+                clash = true;
+                return true;
+            }
+
+            // Liftable/obstacle that blocks via TryResolveExit but not hazard — shouldn't happen
+            if (dest.Device is LiftableDevice lf && lf.Blocks)
+            {
+                clash = true;
+                return true;
+            }
+
+            if (dest.Device is ObstacleDevice)
+            {
+                clash = true;
+                return true;
+            }
+
+            return true;
+        }
+
+        private bool CanEnterIgnoringHazard(CellCoord cell)
+        {
+            if (!InBounds(cell))
+                return false;
+            var dest = Get(cell);
+            if (!dest.IsTraversable)
+                return false;
+            if (dest.Type == CellType.Bridge &&
+                dest.Device is BridgeDevice bridge &&
+                !bridge.IsOpen)
+                return false;
             return true;
         }
 
@@ -204,7 +431,6 @@ namespace DockIQ.Board
                     break;
 
                 case 'R':
-                case 'r':
                     cell.Type = CellType.Rotator;
                     cell.Device = new RotatorDevice(0);
                     break;
@@ -226,6 +452,33 @@ namespace DockIQ.Board
                     cell.Type = CellType.Lift;
                     cell.LiftPairId = 1;
                     cell.Device = new LiftDevice();
+                    break;
+
+                case 'E':
+                    cell.Type = CellType.Elevator;
+                    cell.ElevatorPairId = 0;
+                    cell.Device = new ElevatorDevice();
+                    break;
+
+                case 'e':
+                    cell.Type = CellType.Elevator;
+                    cell.ElevatorPairId = 1;
+                    cell.Device = new ElevatorDevice();
+                    break;
+
+                case 'M':
+                    cell.Type = CellType.Reflector;
+                    cell.Device = new ReflectorDevice();
+                    break;
+
+                case 'X':
+                    cell.Type = CellType.Liftable;
+                    cell.Device = new LiftableDevice(startRaised: false);
+                    break;
+
+                case 'O':
+                    cell.Type = CellType.Obstacle;
+                    cell.Device = new ObstacleDevice();
                     break;
 
                 case 'S':

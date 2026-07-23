@@ -14,20 +14,30 @@ namespace DockIQ.Board
         /// <summary>Vertical span of one diamond tile (half of width for 2:1 iso).</summary>
         public const float TileHeight = 0.5f;
 
-        public static Vector3 CellToWorld(int x, int y, float z = 0f)
+        /// <summary>World-Y offset between stacked track floors.</summary>
+        public const float LayerHeight = 0.55f;
+
+        public static Vector3 CellToWorld(int x, int y, float z = 0f) =>
+            CellToWorld(x, y, 0, z);
+
+        public static Vector3 CellToWorld(int x, int y, int layer, float z = 0f)
         {
             float wx = (x - y) * (TileWidth * 0.5f);
-            float wy = (x + y) * (TileHeight * 0.5f);
+            float wy = (x + y) * (TileHeight * 0.5f) + layer * LayerHeight;
             return new Vector3(wx, wy, z);
         }
 
         public static Vector3 CellToWorld(Vector2Int cell, float z = 0f) =>
-            CellToWorld(cell.x, cell.y, z);
+            CellToWorld(cell.x, cell.y, 0, z);
 
-        public static Vector2Int WorldToCell(Vector3 world)
+        public static Vector3 CellToWorld(CellCoord cell, float z = 0f) =>
+            CellToWorld(cell.X, cell.Y, cell.Layer, z);
+
+        public static Vector2Int WorldToCell(Vector3 world, int layer = 0)
         {
+            float adjustedY = world.y - layer * LayerHeight;
             float a = world.x / (TileWidth * 0.5f);
-            float b = world.y / (TileHeight * 0.5f);
+            float b = adjustedY / (TileHeight * 0.5f);
             int x = Mathf.RoundToInt((a + b) * 0.5f);
             int y = Mathf.RoundToInt((b - a) * 0.5f);
             return new Vector2Int(x, y);
@@ -48,15 +58,18 @@ namespace DockIQ.Board
             return Mathf.Atan2(v.x, v.y) * Mathf.Rad2Deg;
         }
 
-        /// <summary>Painter sorting: lower on screen (smaller x+y) draws in front.</summary>
-        public static int DepthOrder(int x, int y, int layer = 0) =>
-            -(x + y) * 10 + layer;
+        /// <summary>Painter sorting: lower on screen (smaller x+y) draws in front; higher floors on top.</summary>
+        public static int DepthOrder(int x, int y, int floorLayer = 0, int spriteLayer = 0) =>
+            floorLayer * 1000 - (x + y) * 10 + spriteLayer;
 
-        public static int DepthOrder(Vector2Int cell, int layer = 0) =>
-            DepthOrder(cell.x, cell.y, layer);
+        public static int DepthOrder(Vector2Int cell, int floorLayer = 0, int spriteLayer = 0) =>
+            DepthOrder(cell.x, cell.y, floorLayer, spriteLayer);
+
+        public static int DepthOrder(CellCoord cell, int spriteLayer = 0) =>
+            DepthOrder(cell.X, cell.Y, cell.Layer, spriteLayer);
 
         /// <summary>World AABB of the board in isometric space (for camera fit).</summary>
-        public static void GetBounds(int width, int height, out Vector2 min, out Vector2 max)
+        public static void GetBounds(int width, int height, int layerCount, out Vector2 min, out Vector2 max)
         {
             Vector2 bMin = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
             Vector2 bMax = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
@@ -69,18 +82,22 @@ namespace DockIQ.Board
                 { width - 1, height - 1 }
             };
 
+            int layers = Mathf.Max(1, layerCount);
+            for (int layer = 0; layer < layers; layer++)
             for (int i = 0; i < 4; i++)
             {
-                Vector3 p = CellToWorld(corners[i, 0], corners[i, 1]);
+                Vector3 p = CellToWorld(corners[i, 0], corners[i, 1], layer);
                 var v = new Vector2(p.x, p.y);
                 bMin = Vector2.Min(bMin, v);
                 bMax = Vector2.Max(bMax, v);
             }
 
-            // Expand by half-tile so diamonds aren't clipped
             var pad = new Vector2(TileWidth * 0.5f, TileHeight * 0.5f);
             min = bMin - pad;
             max = bMax + pad;
         }
+
+        public static void GetBounds(int width, int height, out Vector2 min, out Vector2 max) =>
+            GetBounds(width, height, 1, out min, out max);
     }
 }
