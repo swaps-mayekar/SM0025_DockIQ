@@ -1,42 +1,27 @@
 # DockIQ Sprite Naming Convention
 
-View: **isometric 2D** (classic 2:1 diamond tiles). Draw art in isometric perspective — not top-down.
+View: **isometric 2D** tracks. Tiny warehouse **robots** drive on rails while you reconfigure the network.
 
-Drop generated 2D art into these folders. Runtime placeholders are used until files exist.
-Also place copies under `Assets/Resources/Sprites/...` if you want `SpriteCatalog` to pick them up at runtime.
-
-## Belts (`Assets/Sprites/Belts/`)
+## Tracks (`Assets/Sprites/Belts/` or `Tracks/`)
 | File | Use |
 |------|-----|
-| `belt_straight.png` | Iso conveyor floor diamond (pivot center) |
-| `belt_corner.png` | Optional corner piece |
-| `belt_floor.png` | Empty warehouse floor tile |
+| `belt_straight.png` / `track.png` | Iso track diamond |
+| `switch.png` | Railway switch / turnout |
+| `rotator.png` | Rotating intersection / turntable |
+| `bridge_open.png` / `bridge_closed.png` | Drawbridge |
+| `lift.png` | Freight lift pad |
 
-## Devices (`Assets/Sprites/Devices/`)
+## Robots (`Assets/Sprites/Parcels/` or `Robots/`)
 | File | Use |
 |------|-----|
-| `switch.png` | Tap-to-rotate junction (iso) |
-| `splitter.png` | Tap-to-change output lane |
-| `scanner.png` | Future — label gate |
-| `elevator.png` | Future — floor transfer |
-| `robot_arm.png` | Future — pick/place |
-| `jam_button.png` | Future — clear jam |
+| `parcel.png` / `robot.png` | Standard yard robot |
+| `parcel_vip.png` / `robot_rescue.png` | Highlighted rescue robot |
 
-## Parcels (`Assets/Sprites/Parcels/`)
+## Docks / UI
 | File | Use |
 |------|-----|
-| `parcel.png` | Iso cardboard crate (decoy) |
-| `parcel_vip.png` | Gold-outline VIP shipment |
+| `dock.png` | Shipping dock / gate |
+| `banner_panel.png` | Mission HUD |
 
-## Docks (`Assets/Sprites/Docks/`)
-| File | Use |
-|------|-----|
-| `dock.png` | Iso shipping dock bay |
-
-## UI (`Assets/Sprites/UI/`)
-| File | Use |
-|------|-----|
-| `banner_panel.png` | Request / HUD panel |
-| `button.png` | Menu / HUD buttons |
-
-**Recommended:** 256×128 (2:1) or 512×256 PNG diamonds for floor tiles; crates ~256×256 with transparent BG. Pivot at tile center. Code handles grid→screen projection and depth sorting.
+**Gameplay legend (level strings):**
+- `^>v<` track · `+` switch · `R` rotator · `B` bridge · `A`/`a` lift pair · `S` spawn · `1`–`9` docks

@@ -4,28 +4,30 @@ namespace DockIQ.UI
 {
         /// <summary>
         /// Runtime placeholder sprites until generated 2D art is dropped into Assets/Sprites/.
-        /// Board view is isometric 2D — prefer IsoDiamond for floor tiles.
-        /// Naming convention for replacements (see Sprites/README):
-        ///   Belts/belt_straight.png, belt_corner.png
-        ///   Devices/switch.png, splitter.png
-        ///   Parcels/parcel.png, parcel_vip.png
-        ///   Docks/dock.png
-        ///   UI/banner_panel.png
+        /// Board view is isometric 2D — robots drive on track diamonds.
+        /// See Sprites/README for naming (tracks, switches, robots, docks).
         /// </summary>
     public static class PlaceholderArt
     {
         private static Sprite _white;
         private static Sprite _circle;
         private static Sprite _diamond;
+        private static Sprite _robot;
 
         public static readonly Color Navy = new Color(0.04f, 0.10f, 0.17f, 1f);
         public static readonly Color Slate = new Color(0.29f, 0.33f, 0.41f, 1f);
-        public static readonly Color Belt = new Color(0.35f, 0.40f, 0.48f, 1f);
+        public static readonly Color Track = new Color(0.42f, 0.46f, 0.52f, 1f);
+        public static readonly Color Belt = Track; // alias
         public static readonly Color Hazard = new Color(0.96f, 0.77f, 0.09f, 1f);
         public static readonly Color ParcelBrown = new Color(0.65f, 0.49f, 0.32f, 1f);
+        public static readonly Color RobotGrey = new Color(0.55f, 0.60f, 0.68f, 1f);
         public static readonly Color VipGold = new Color(1f, 0.84f, 0.0f, 1f);
         public static readonly Color DockGreen = new Color(0.18f, 0.80f, 0.44f, 1f);
         public static readonly Color DockWrong = new Color(0.90f, 0.30f, 0.28f, 1f);
+        public static readonly Color BridgeClosed = new Color(0.55f, 0.22f, 0.20f, 1f);
+        public static readonly Color BridgeOpen = new Color(0.30f, 0.55f, 0.75f, 1f);
+        public static readonly Color LiftPad = new Color(0.55f, 0.35f, 0.75f, 1f);
+        public static readonly Color Rotator = new Color(0.75f, 0.55f, 0.20f, 1f);
         public static readonly Color Panel = new Color(0.08f, 0.14f, 0.22f, 0.92f);
         public static readonly Color Text = Color.white;
 
@@ -96,6 +98,32 @@ namespace DockIQ.UI
             _circle = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
             _circle.name = "PlaceholderCircle";
             return _circle;
+        }
+
+        /// <summary>Simple robot chassis (rounded rectangle).</summary>
+        public static Sprite RobotBody()
+        {
+            if (_robot != null)
+                return _robot;
+
+            const int w = 24;
+            const int h = 18;
+            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+            tex.filterMode = FilterMode.Point;
+            for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+            {
+                bool edge = x == 0 || y == 0 || x == w - 1 || y == h - 1;
+                bool cabin = x >= 14 && x <= 20 && y >= 5 && y <= 12;
+                tex.SetPixel(x, y, edge ? new Color(0.15f, 0.15f, 0.18f, 1f)
+                    : cabin ? new Color(0.4f, 0.85f, 1f, 1f)
+                    : Color.white);
+            }
+
+            tex.Apply();
+            _robot = Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 24f);
+            _robot.name = "PlaceholderRobot";
+            return _robot;
         }
     }
 }

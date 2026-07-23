@@ -15,7 +15,7 @@ namespace DockIQ.Gameplay
         private GridBoard _board;
         private BoardView _view;
         private GameHud _hud;
-        private readonly List<ParcelActor> _parcels = new List<ParcelActor>();
+        private readonly List<RobotActor> _robots = new List<RobotActor>();
 
         private float _tickTimer;
         private float _timeLeft;
@@ -40,12 +40,17 @@ namespace DockIQ.Gameplay
                 _view = gameObject.AddComponent<BoardView>();
             _view.Build(_board);
 
-            ClearParcels();
-            SpawnParcel(level.VipStart, true);
+            ClearRobots();
+            SpawnRobot(level.RobotStart, level.RobotFacing, true, level.RobotCallsign);
             if (level.DecoyStarts != null)
             {
-                foreach (var d in level.DecoyStarts)
-                    SpawnParcel(d, false);
+                for (int i = 0; i < level.DecoyStarts.Length; i++)
+                {
+                    Dir face = level.DecoyFacings != null && i < level.DecoyFacings.Length
+                        ? level.DecoyFacings[i]
+                        : Dir.East;
+                    SpawnRobot(level.DecoyStarts[i], face, false, $"#X{i + 1}");
+                }
             }
 
             FitCamera();
@@ -61,8 +66,8 @@ namespace DockIQ.Gameplay
 
             HandleTap();
 
-            for (int i = 0; i < _parcels.Count; i++)
-                _parcels[i].TickVisual(_level.TickSeconds);
+            for (int i = 0; i < _robots.Count; i++)
+                _robots[i].TickVisual(_level.TickSeconds);
 
             if (!_running)
                 return;
@@ -71,7 +76,7 @@ namespace DockIQ.Gameplay
             _hud.SetTimer(_timeLeft);
             if (_timeLeft <= 0f)
             {
-                Fail("Truck departed!");
+                Fail("Departure window closed!");
                 return;
             }
 
@@ -136,47 +141,62 @@ namespace DockIQ.Gameplay
 
         private void StepSimulation()
         {
-            // Resolve moves — VIP evaluated first for dock outcomes
-            _parcels.Sort((a, b) => b.IsVip.CompareTo(a.IsVip));
+            _robots.Sort((a, b) => b.IsRescue.CompareTo(a.IsRescue));
 
-            for (int i = 0; i < _parcels.Count; i++)
+            for (int i = 0; i < _robots.Count; i++)
             {
-                var parcel = _parcels[i];
-                if (parcel.Arrived)
+                var robot = _robots[i];
+                if (robot.Arrived)
                     continue;
 
-                var cell = _board.Get(parcel.Cell);
+                var cell = _board.Get(robot.Cell);
                 if (cell.IsDock)
                 {
-                    ResolveDock(parcel, cell);
+                    ResolveDock(robot, cell);
                     continue;
                 }
 
-                Vector2Int? next = _board.Step(parcel.Cell);
-                if (next == null)
+                if (!_board.TryStep(robot.Cell, robot.Facing, out Vector2Int next, out Dir newFacing,
+                        robot.SuppressLift))
+                {
+                    // Rescue robot stuck on closed bridge / dead end — keep waiting
                     continue;
+                }
 
-                parcel.BeginMove(next.Value, _board.CellToWorld(next.Value, -0.1f));
+                bool stayedOnPad = next == robot.Cell;
+                bool usedLift = _board.Get(robot.Cell).IsLift && !robot.SuppressLift;
 
-                var nextCell = _board.Get(next.Value);
+                if (stayedOnPad)
+                {
+                    // Landed on arrival lift with no exit — don't re-teleport next tick.
+                    if (usedLift)
+                        robot.SuppressLift = true;
+                    continue;
+                }
+
+                // Left a lift pad (or any cell) — clear suppress.
+                robot.SuppressLift = false;
+                robot.BeginMove(next, newFacing, _board.CellToWorld(next, -0.1f));
+
+                var nextCell = _board.Get(next);
                 if (nextCell.IsDock)
-                    ResolveDock(parcel, nextCell);
+                    ResolveDock(robot, nextCell);
             }
         }
 
-        private void ResolveDock(ParcelActor parcel, CellData dock)
+        private void ResolveDock(RobotActor robot, CellData dock)
         {
-            if (!parcel.IsVip)
+            if (!robot.IsRescue)
             {
-                parcel.MarkArrived();
+                robot.MarkArrived();
                 return;
             }
 
-            parcel.MarkArrived();
+            robot.MarkArrived();
             if (dock.DockId == _level.TargetDockId)
                 Win();
             else
-                Fail($"Wrong dock ({dock.DockId})!");
+                Fail($"Wrong gate — needed {_level.DockName}!");
         }
 
         private void Win()
@@ -186,7 +206,7 @@ namespace DockIQ.Gameplay
             _ended = true;
             _running = false;
             ProgressStore.MarkLevelCompleted(_level.Id);
-            _hud.ShowResult(true, "Shipment rescued!", _level.Id < LevelCatalog.Count);
+            _hud.ShowResult(true, $"{_level.RobotCallsign} reached {_level.DockName}!", _level.Id < LevelCatalog.Count);
         }
 
         private void Fail(string reason)
@@ -198,30 +218,35 @@ namespace DockIQ.Gameplay
             _hud.ShowResult(false, reason, false);
         }
 
-        private void SpawnParcel(Vector2Int cell, bool vip)
+        private void SpawnRobot(Vector2Int cell, Dir facing, bool rescue, string callsign)
         {
             if (!_board.InBounds(cell) || !_board.Get(cell).IsTraversable)
             {
-                Debug.LogWarning($"Invalid parcel start {cell} on level {_level.Id}");
+                Debug.LogWarning($"Invalid robot start {cell} on level {_level.Id}");
                 return;
             }
 
-            var go = new GameObject(vip ? "VIP" : "Parcel");
+            // Prefer authored facing on spawn/track cells
+            var data = _board.Get(cell);
+            if (data.Type == CellType.Spawn || data.Type == CellType.Track)
+                facing = data.Facing;
+
+            var go = new GameObject(rescue ? $"Robot_{callsign}" : $"Decoy_{callsign}");
             go.transform.SetParent(transform, false);
-            var actor = go.AddComponent<ParcelActor>();
-            actor.Init(cell, vip, _board.CellToWorld(cell, -0.1f));
-            _parcels.Add(actor);
+            var actor = go.AddComponent<RobotActor>();
+            actor.Init(cell, facing, rescue, callsign, _board.CellToWorld(cell, -0.1f));
+            _robots.Add(actor);
         }
 
-        private void ClearParcels()
+        private void ClearRobots()
         {
-            for (int i = 0; i < _parcels.Count; i++)
+            for (int i = 0; i < _robots.Count; i++)
             {
-                if (_parcels[i] != null)
-                    Destroy(_parcels[i].gameObject);
+                if (_robots[i] != null)
+                    Destroy(_robots[i].gameObject);
             }
 
-            _parcels.Clear();
+            _robots.Clear();
         }
 
         private void FitCamera()
@@ -230,14 +255,12 @@ namespace DockIQ.Gameplay
                 return;
 
             IsoMath.GetBounds(_board.Width, _board.Height, out Vector2 min, out Vector2 max);
-            // Bounds are local; board Origin already centers them at world 0
             float spanX = (max.x - min.x) * 0.5f + 0.6f;
             float spanY = (max.y - min.y) * 0.5f + 1.4f;
 
             _cam.orthographic = true;
             _cam.orthographicSize = Mathf.Max(spanY, spanX / Mathf.Max(0.1f, _cam.aspect));
             _cam.backgroundColor = PlaceholderArt.Navy;
-            // Slight upward bias so HUD does not cover the board
             _cam.transform.position = new Vector3(0f, -0.15f, -10f);
         }
     }

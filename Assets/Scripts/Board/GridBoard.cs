@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DockIQ.Board
@@ -8,8 +9,6 @@ namespace DockIQ.Board
         public int Width { get; private set; }
         public int Height { get; private set; }
         public float CellSize { get; private set; }
-
-        /// <summary>World offset so the isometric board is centered at origin.</summary>
         public Vector3 Origin { get; private set; }
 
         private CellData[,] _cells;
@@ -43,13 +42,49 @@ namespace DockIQ.Board
             Origin = new Vector3(-center.x, -center.y, 0f);
 
             _cells = new CellData[Width, Height];
+            var liftsByPair = new Dictionary<int, List<Vector2Int>>();
+
             for (int y = 0; y < Height; y++)
             {
                 int rowIndex = Height - 1 - y;
                 string row = rows[rowIndex];
                 for (int x = 0; x < Width; x++)
+                {
                     _cells[x, y] = ParseCell(row[x]);
+                    if (_cells[x, y].IsLift)
+                    {
+                        int pair = _cells[x, y].LiftPairId;
+                        if (!liftsByPair.TryGetValue(pair, out var list))
+                        {
+                            list = new List<Vector2Int>();
+                            liftsByPair[pair] = list;
+                        }
+
+                        list.Add(new Vector2Int(x, y));
+                    }
+                }
             }
+
+            foreach (var kv in liftsByPair)
+            {
+                var pads = kv.Value;
+                if (pads.Count != 2)
+                {
+                    Debug.LogWarning($"Lift pair {kv.Key} has {pads.Count} pads (need 2)");
+                    continue;
+                }
+
+                LinkLift(pads[0], pads[1]);
+                LinkLift(pads[1], pads[0]);
+            }
+        }
+
+        private void LinkLift(Vector2Int from, Vector2Int to)
+        {
+            var cell = Get(from);
+            cell.LiftTarget = to;
+            if (cell.Device is LiftDevice lift)
+                lift.LinkedCell = to;
         }
 
         public Vector3 CellToWorld(Vector2Int cell, float z = 0f)
@@ -65,20 +100,83 @@ namespace DockIQ.Board
             return InBounds(cell);
         }
 
-        public Vector2Int? Step(Vector2Int from)
+        /// <summary>
+        /// Advance a robot one cell along tracks. Updates facing when redirected.
+        /// </summary>
+        /// <param name="suppressLift">If true, treat current lift pad as a normal tile (no teleport).</param>
+        public bool TryStep(Vector2Int from, Dir facing, out Vector2Int next, out Dir newFacing,
+            bool suppressLift = false)
         {
+            next = from;
+            newFacing = facing;
+
             if (!InBounds(from))
-                return null;
+                return false;
 
             var data = Get(from);
             if (!data.IsTraversable || data.IsDock)
-                return null;
+                return false;
 
-            Vector2Int next = from + DirUtil.ToOffset(data.GetExitDir());
-            if (!InBounds(next) || !Get(next).IsTraversable)
-                return null;
+            // Lift: teleport to linked pad, then immediately leave that pad
+            // in the travel direction so we never bounce A↔a forever.
+            if (data.IsLift && !suppressLift)
+                return TryExitLift(data.LiftTarget, facing, out next, out newFacing);
 
-            return next;
+            if (!data.TryResolveExit(facing, out Dir exit))
+                return false; // e.g. closed bridge
+
+            // On a lift with suppress: leave via facing, never re-teleport.
+            newFacing = exit;
+            next = from + DirUtil.ToOffset(exit);
+            return CanEnter(next);
+        }
+
+        /// <summary>
+        /// Arrive on a lift pad and continue off it (pass-through transfer).
+        /// </summary>
+        /// <returns>
+        /// True if transfer resolved. <paramref name="landedOnPad"/> is true when
+        /// the robot had to stop on the arrival pad (no valid exit).
+        /// </returns>
+        private bool TryExitLift(Vector2Int pad, Dir facing, out Vector2Int next, out Dir newFacing)
+        {
+            next = pad;
+            newFacing = facing;
+
+            if (!InBounds(pad) || !Get(pad).IsTraversable)
+                return false;
+
+            // Leave along travel facing — do not trigger the destination lift's teleport.
+            Dir exit = facing;
+            Vector2Int after = pad + DirUtil.ToOffset(exit);
+            if (CanEnter(after) && !Get(after).IsLift)
+            {
+                next = after;
+                newFacing = exit;
+                return true;
+            }
+
+            // Stay on arrival pad; caller should suppress lift next tick.
+            next = pad;
+            newFacing = facing;
+            return true;
+        }
+
+        private bool CanEnter(Vector2Int cell)
+        {
+            if (!InBounds(cell))
+                return false;
+
+            var dest = Get(cell);
+            if (!dest.IsTraversable)
+                return false;
+
+            if (dest.Type == CellType.Bridge &&
+                dest.Device is BridgeDevice bridge &&
+                !bridge.IsOpen)
+                return false;
+
+            return true;
         }
 
         private static CellData ParseCell(char c)
@@ -95,7 +193,7 @@ namespace DockIQ.Board
                 case '>':
                 case 'v':
                 case '<':
-                    cell.Type = CellType.Belt;
+                    cell.Type = CellType.Track;
                     cell.Facing = DirUtil.FromChar(c);
                     break;
 
@@ -105,10 +203,29 @@ namespace DockIQ.Board
                     cell.Device = new SwitchDevice(Dir.East);
                     break;
 
-                case '*':
-                    cell.Type = CellType.Splitter;
-                    cell.Facing = Dir.East;
-                    cell.Device = new SplitterDevice(Dir.East);
+                case 'R':
+                case 'r':
+                    cell.Type = CellType.Rotator;
+                    cell.Device = new RotatorDevice(0);
+                    break;
+
+                case 'B':
+                    cell.Type = CellType.Bridge;
+                    cell.Device = new BridgeDevice(startOpen: false);
+                    break;
+
+                case 'A':
+                case 'a':
+                    cell.Type = CellType.Lift;
+                    cell.LiftPairId = 0;
+                    cell.Device = new LiftDevice();
+                    break;
+
+                case 'C':
+                case 'c':
+                    cell.Type = CellType.Lift;
+                    cell.LiftPairId = 1;
+                    cell.Device = new LiftDevice();
                     break;
 
                 case 'S':

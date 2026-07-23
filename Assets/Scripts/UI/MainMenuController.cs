@@ -57,8 +57,9 @@ namespace DockIQ.UI
             grid.childAlignment = TextAnchor.UpperCenter;
             _levelGrid = gridGo.transform;
 
-            UiFactory.CreateText(safe, "Hint", "Tap switches to rotate. Guide the gold VIP parcel.", 22,
-                FontStyles.Normal, new Vector2(0f, -920f), new Vector2(900f, 80f));
+            UiFactory.CreateText(safe, "Hint",
+                "Warehouse AI is down. Tap switches, turntables & bridges while robots keep driving.",
+                22, FontStyles.Normal, new Vector2(0f, -920f), new Vector2(900f, 100f));
         }
 
         private void RefreshLevels()

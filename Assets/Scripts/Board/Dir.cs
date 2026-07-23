@@ -23,6 +23,8 @@ namespace DockIQ.Board
 
         public static Dir RotateCw(Dir dir) => (Dir)(((int)dir + 1) % 4);
 
+        public static Dir RotateCcw(Dir dir) => (Dir)(((int)dir + 3) % 4);
+
         public static Dir Opposite(Dir dir) => (Dir)(((int)dir + 2) % 4);
 
         /// <summary>Top-down Z rotation (legacy). Prefer <see cref="IsoMath.DirToZDegrees"/> for board view.</summary>
