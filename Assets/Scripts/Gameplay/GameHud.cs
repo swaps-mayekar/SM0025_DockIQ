@@ -1,3 +1,4 @@
+using System;
 using DockIQ.Core;
 using DockIQ.Levels;
 using DockIQ.UI;
@@ -15,6 +16,14 @@ namespace DockIQ.Gameplay
         private GameObject _resultPanel;
         private TextMeshProUGUI _resultText;
         private Button _nextButton;
+        private Button _pauseButton;
+        private GameObject _pauseBackdrop;
+        private GameObject _pausePanel;
+
+        private Action _onPause;
+        private Action _onResume;
+        private Action _onRestart;
+        private Action _onQuitToMenu;
 
         public void Build()
         {
@@ -33,10 +42,8 @@ namespace DockIQ.Gameplay
 
             var bottom = UiFactory.CreatePanel(safe, "BottomBar", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
                 new Vector2(0f, 40f), new Vector2(680f, 80f), Color.clear);
-            UiFactory.CreateButton(bottom.transform, "Menu", "Menu", new Vector2(-220f, 0f),
-                () => SceneRouter.LoadMenu());
-            UiFactory.CreateButton(bottom.transform, "Retry", "Retry", new Vector2(0f, 0f),
-                () => SceneRouter.ReloadGame());
+            _pauseButton = UiFactory.CreateButton(bottom.transform, "Pause", "Pause", new Vector2(0f, 0f),
+                OnPausePressed);
 
             _resultPanel = UiFactory.CreatePanel(safe, "Result", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 Vector2.zero, new Vector2(560f, 320f), PlaceholderArt.Panel).gameObject;
@@ -50,6 +57,35 @@ namespace DockIQ.Gameplay
                 () => SceneRouter.LoadMenu());
 
             _resultPanel.SetActive(false);
+
+            _pauseBackdrop = UiFactory.CreatePanel(safe, "PauseBackdrop", Vector2.zero, Vector2.one,
+                Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.35f)).gameObject;
+            var backdropRt = (RectTransform)_pauseBackdrop.transform;
+            UiFactory.StretchFull(backdropRt);
+            var backdropButton = _pauseBackdrop.AddComponent<Button>();
+            backdropButton.transition = Selectable.Transition.None;
+            backdropButton.onClick.AddListener(OnResumePressed);
+            _pauseBackdrop.SetActive(false);
+
+            _pausePanel = UiFactory.CreatePanel(safe, "PausePanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(560f, 380f), PlaceholderArt.Panel).gameObject;
+            UiFactory.CreateText(_pausePanel.transform, "PauseTitle", "Paused", 34, FontStyles.Bold,
+                new Vector2(0f, 120f), new Vector2(500f, 80f));
+            UiFactory.CreateButton(_pausePanel.transform, "Resume", "Resume", new Vector2(0f, 45f),
+                OnResumePressed);
+            UiFactory.CreateButton(_pausePanel.transform, "Restart", "Restart", new Vector2(0f, -45f),
+                OnRestartPressed);
+            UiFactory.CreateButton(_pausePanel.transform, "QuitToMenu", "Quit to Menu", new Vector2(0f, -135f),
+                OnQuitPressed);
+            _pausePanel.SetActive(false);
+        }
+
+        public void ConfigurePause(Action onPause, Action onResume, Action onRestart, Action onQuitToMenu)
+        {
+            _onPause = onPause;
+            _onResume = onResume;
+            _onRestart = onRestart;
+            _onQuitToMenu = onQuitToMenu;
         }
 
         public void ShowRequest(string request, string title)
@@ -80,6 +116,11 @@ namespace DockIQ.Gameplay
         {
             if (_resultPanel == null)
                 return;
+
+            HidePause();
+            if (_pauseButton != null)
+                _pauseButton.gameObject.SetActive(false);
+
             _resultPanel.SetActive(true);
             _resultText.text = success ? $"Success\n{message}" : $"Failed\n{message}";
             _resultText.color = success ? PlaceholderArt.DockGreen : PlaceholderArt.DockWrong;
@@ -92,6 +133,35 @@ namespace DockIQ.Gameplay
             int next = Mathf.Min(current + 1, LevelCatalog.Count);
             ProgressStore.SetSelectedLevel(next);
             SceneRouter.ReloadGame();
+        }
+
+        private void OnPausePressed()
+        {
+            if (_pausePanel == null || _pausePanel.activeSelf)
+                return;
+
+            if (_pauseBackdrop != null)
+                _pauseBackdrop.SetActive(true);
+            _pausePanel.SetActive(true);
+            _onPause?.Invoke();
+        }
+
+        private void OnResumePressed()
+        {
+            HidePause();
+            _onResume?.Invoke();
+        }
+
+        private void OnRestartPressed() => _onRestart?.Invoke();
+
+        private void OnQuitPressed() => _onQuitToMenu?.Invoke();
+
+        private void HidePause()
+        {
+            if (_pausePanel != null)
+                _pausePanel.SetActive(false);
+            if (_pauseBackdrop != null)
+                _pauseBackdrop.SetActive(false);
         }
     }
 }

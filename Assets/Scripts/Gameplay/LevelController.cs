@@ -21,6 +21,7 @@ namespace DockIQ.Gameplay
         private float _timeLeft;
         private bool _running;
         private bool _ended;
+        private bool _paused;
         private Camera _cam;
 
         public void Begin(LevelDef level, GameHud hud)
@@ -29,6 +30,7 @@ namespace DockIQ.Gameplay
             _hud = hud;
             _ended = false;
             _running = true;
+            _paused = false;
             _timeLeft = level.TimeLimit;
             _tickTimer = level.TickSeconds;
             _cam = Camera.main;
@@ -57,11 +59,15 @@ namespace DockIQ.Gameplay
             _hud.ShowRequest(level.RequestText, level.Title);
             _hud.SetTimer(_timeLeft);
             _hud.HideResult();
+            _hud.ConfigurePause(OnPaused, OnResumed, SceneRouter.ReloadGame, SceneRouter.LoadMenu);
         }
 
         private void Update()
         {
             if (_ended)
+                return;
+
+            if (_paused)
                 return;
 
             HandleTap();
@@ -230,6 +236,7 @@ namespace DockIQ.Gameplay
                 return;
             _ended = true;
             _running = false;
+            _paused = false;
             ProgressStore.MarkLevelCompleted(_level.Id);
             _hud.ShowResult(true, $"{_level.RobotCallsign} reached {_level.DockName}!", _level.Id < LevelCatalog.Count);
         }
@@ -240,7 +247,22 @@ namespace DockIQ.Gameplay
                 return;
             _ended = true;
             _running = false;
+            _paused = false;
             _hud.ShowResult(false, reason, false);
+        }
+
+        private void OnPaused()
+        {
+            if (_ended)
+                return;
+            _paused = true;
+        }
+
+        private void OnResumed()
+        {
+            if (_ended)
+                return;
+            _paused = false;
         }
 
         private void SpawnRobot(CellCoord cell, Dir facing, bool rescue, string callsign)
