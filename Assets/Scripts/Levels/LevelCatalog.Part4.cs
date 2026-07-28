@@ -109,14 +109,15 @@ namespace DockIQ.Levels
                     new[]
                     {
                         "...........",
-                        ".E>>.......",
+                        ".E>>>>>....",
                         "...+>>2....",
                         "...>.......",
                         "..........."
                     }),
                 Movables = new[]
                 {
-                    Mov('R', 0, 2, P(3, 3, 1), P(3, 2, 1), P(3, 1, 1))
+                    // Upper-deck horizontal path; switch at (3,2,1) stays free.
+                    Mov('R', 0, 2, P(5, 3, 1), P(4, 3, 1), P(3, 3, 1))
                 }
             });
 
@@ -141,7 +142,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 44, Title = "Triple Threat",
-                RequestText = "Obstacle, rotator path, and dock pick",
+                RequestText = "Clear scrap and steer to dock 2",
                 RobotCallsign = "#K44", DockName = "Dock 2", TargetDockId = 2,
                 TimeLimit = 48f, TickSeconds = 0.36f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -152,11 +153,11 @@ namespace DockIQ.Levels
                     ".S>+>>>1...",
                     "...v.......",
                     "...+>>>2...",
-                    "...>.>....."),
+                    "...>>>....."),
                 Movables = new[]
                 {
                     Mov('O', 0, P(4, 3), P(5, 1), P(4, 1)),
-                    Mov('R', 0, 2, P(3, 1), P(3, 2), P(3, 3))
+                    Mov('R', 0, 2, P(5, 0), P(4, 0), P(3, 0))
                 }
             });
 
@@ -233,7 +234,8 @@ namespace DockIQ.Levels
                     }),
                 Movables = new[]
                 {
-                    Mov('O', 0, P(5, 1, 1), P(5, 0, 1), P(3, 0, 1))
+                    // Blocks approach to dock; slide onto the spur — never covers elevators.
+                    Mov('O', 0, P(6, 1, 1), P(6, 0, 1), P(5, 0, 1))
                 }
             });
 

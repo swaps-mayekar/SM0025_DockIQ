@@ -136,40 +136,42 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 19, Title = "Sliding Turntable",
-                RequestText = "Slide & set the turntable for #H19",
+                RequestText = "Slide the turntable onto the junction for #H19",
                 RobotCallsign = "#H19", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 42f, TickSeconds = 0.42f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
                 Mechanics = MechanicsMask.Rotators | MechanicsMask.Movables | MechanicsMask.Switches,
                 Layers = L0(
                     "...........",
-                    ".S>>.......",
-                    "...+>>1....",
-                    "...>.......",
+                    ".S>>>>>>...",
+                    "....+>>1...",
+                    "...........",
                     "..........."),
                 Movables = new[]
                 {
-                    Mov('R', 0, 2, P(3, 3), P(3, 2), P(3, 1))
+                    // Horizontal path only — does not cover the switch.
+                    Mov('R', 0, 2, P(6, 3), P(5, 3), P(4, 3))
                 }
             });
 
             add(new LevelDef
             {
                 Id = 20, Title = "Path Pivot",
-                RequestText = "Move the rotator onto the junction",
+                RequestText = "Slide the rotator onto the drop for dock 1",
                 RobotCallsign = "#H20", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
                 Mechanics = MechanicsMask.Switches | MechanicsMask.Rotators | MechanicsMask.Movables,
                 Layers = L0(
                     "...........",
-                    ".S>+.......",
+                    ".S>>>>>>...",
                     "...v.......",
-                    "...>>>>1...",
-                    "...>......."),
+                    "...+>>>1...",
+                    "..........."),
                 Movables = new[]
                 {
-                    Mov('R', 0, 1, P(3, 1), P(3, 2), P(3, 3))
+                    // Slide onto (3,3); Right mode drops south. Switch below turns east.
+                    Mov('R', 0, 2, P(6, 3), P(5, 3), P(3, 3))
                 }
             });
 
@@ -196,27 +198,29 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 22, Title = "Rotator Relay",
-                RequestText = "Cycle the turntable path for dock 2",
+                RequestText = "Slide the turntable onto the junction for dock 2",
                 RobotCallsign = "#H22", DockName = "Dock 2", TargetDockId = 2,
                 TimeLimit = 44f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
                 Mechanics = MechanicsMask.Rotators | MechanicsMask.Movables | MechanicsMask.Switches,
                 Layers = L0(
                     "...........",
-                    ".S>>>1.....",
-                    "....v......",
+                    ".S>>>>>>...",
                     "....+>>>2..",
-                    "....>......"),
+                    "...........",
+                    "..........."),
                 Movables = new[]
                 {
-                    Mov('R', 0, 0, P(4, 3), P(4, 2), P(4, 1))
+                    // Starts east of the junction; tap twice to slide onto (4,3).
+                    // Mode is already Right — path must NOT overlap the switch.
+                    Mov('R', 0, 2, P(6, 3), P(5, 3), P(4, 3))
                 }
             });
 
             add(new LevelDef
             {
                 Id = 23, Title = "Twin Movers",
-                RequestText = "Align rotator and clear scrap",
+                RequestText = "Slide the turntable into place and clear scrap",
                 RobotCallsign = "#H23", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 46f, TickSeconds = 0.38f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -224,14 +228,14 @@ namespace DockIQ.Levels
                              MechanicsMask.Switches,
                 Layers = L0(
                     "...........",
-                    ".S>>.......",
-                    "...+>>1....",
-                    "...>.>.....",
+                    ".S>>>>>>...",
+                    "....+>>1...",
+                    "......>....",
                     "..........."),
                 Movables = new[]
                 {
-                    Mov('R', 0, 2, P(3, 3), P(3, 2), P(3, 1)),
-                    Mov('O', 0, P(5, 2), P(5, 1), P(3, 1))
+                    Mov('R', 0, 2, P(6, 3), P(5, 3), P(4, 3)),
+                    Mov('O', 0, P(6, 2), P(6, 1), P(5, 1))
                 }
             });
 

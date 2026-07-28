@@ -15,6 +15,19 @@ namespace DockIQ.Board
 
         private CellData[,,] _cells; // [layer, x, y]
         private readonly List<MovablePiece> _movables = new List<MovablePiece>();
+        private readonly Dictionary<CellCoord, CellUnderlay> _underlays = new Dictionary<CellCoord, CellUnderlay>();
+
+        private struct CellUnderlay
+        {
+            public CellType Type;
+            public IDevice Device;
+            public Dir Facing;
+            public int DockId;
+            public int LiftPairId;
+            public int ElevatorPairId;
+            public CellCoord LiftTarget;
+            public CellCoord ElevatorTarget;
+        }
 
         public IReadOnlyList<MovablePiece> Movables => _movables;
 
@@ -128,6 +141,7 @@ namespace DockIQ.Board
             }
 
             _movables.Clear();
+            _underlays.Clear();
             if (movables != null)
             {
                 for (int i = 0; i < movables.Length; i++)
@@ -154,7 +168,6 @@ namespace DockIQ.Board
                 _ => new ObstacleDevice()
             };
 
-            // Reflectors/obstacles on movables need interact for path cycle via MovableId
             var piece = new MovablePiece(id, def, device);
             foreach (var slot in piece.Path)
             {
@@ -163,20 +176,32 @@ namespace DockIQ.Board
                     Debug.LogWarning($"Movable {id} path slot out of bounds: {slot}");
                     return;
                 }
+
+                // Snapshot underlay once so detaching restores switches/bridges/etc.
+                if (!_underlays.ContainsKey(slot))
+                    _underlays[slot] = CaptureUnderlay(Get(slot));
             }
 
             _movables.Add(piece);
             AttachMovable(piece);
         }
 
+        private static CellUnderlay CaptureUnderlay(CellData cell) => new CellUnderlay
+        {
+            Type = cell.Type == CellType.Empty ? CellType.Track : cell.Type,
+            Device = cell.Device,
+            Facing = cell.Facing,
+            DockId = cell.DockId,
+            LiftPairId = cell.LiftPairId,
+            ElevatorPairId = cell.ElevatorPairId,
+            LiftTarget = cell.LiftTarget,
+            ElevatorTarget = cell.ElevatorTarget
+        };
+
         private void AttachMovable(MovablePiece piece)
         {
             var cell = Get(piece.Current);
-            if (!cell.IsTraversable)
-                Debug.LogWarning($"Movable {piece.Id} on non-traversable {piece.Current}");
-
-            // Preserve track under movable; overlay device + id
-            if (cell.Type == CellType.Empty)
+            if (!cell.IsTraversable && cell.Type == CellType.Empty)
                 cell.Type = CellType.Track;
 
             if (piece.Kind == 'R' || piece.Kind == 'r')
@@ -198,11 +223,25 @@ namespace DockIQ.Board
             if (cell.MovableId != piece.Id)
                 return;
 
-            cell.Device = null;
             cell.MovableId = -1;
-            if (cell.Type == CellType.Rotator || cell.Type == CellType.Reflector ||
-                cell.Type == CellType.Obstacle)
-                cell.Type = CellType.Track;
+            if (_underlays.TryGetValue(at, out var under))
+            {
+                cell.Type = under.Type;
+                cell.Device = under.Device;
+                cell.Facing = under.Facing;
+                cell.DockId = under.DockId;
+                cell.LiftPairId = under.LiftPairId;
+                cell.ElevatorPairId = under.ElevatorPairId;
+                cell.LiftTarget = under.LiftTarget;
+                cell.ElevatorTarget = under.ElevatorTarget;
+            }
+            else
+            {
+                cell.Device = null;
+                if (cell.Type == CellType.Rotator || cell.Type == CellType.Reflector ||
+                    cell.Type == CellType.Obstacle)
+                    cell.Type = CellType.Track;
+            }
         }
 
         /// <summary>Advance movable if next slot is free of robots and other movables.</summary>
