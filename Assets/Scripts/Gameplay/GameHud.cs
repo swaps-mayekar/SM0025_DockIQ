@@ -10,74 +10,54 @@ namespace DockIQ.Gameplay
 {
     public sealed class GameHud : MonoBehaviour
     {
-        private TextMeshProUGUI _requestText;
-        private TextMeshProUGUI _timerText;
-        private TextMeshProUGUI _titleText;
-        private GameObject _resultPanel;
-        private TextMeshProUGUI _resultText;
-        private Button _nextButton;
-        private Button _pauseButton;
-        private GameObject _pauseBackdrop;
-        private GameObject _pausePanel;
+        [Header("HUD")]
+        [SerializeField] private TextMeshProUGUI _requestText;
+        [SerializeField] private TextMeshProUGUI _timerText;
+        [SerializeField] private TextMeshProUGUI _titleText;
+        [SerializeField] private Button _pauseButton;
+
+        [Header("Result Modal")]
+        [SerializeField] private GameObject _resultPanel;
+        [SerializeField] private TextMeshProUGUI _resultText;
+        [SerializeField] private Button _nextButton;
+        [SerializeField] private Button _retryResultButton;
+        [SerializeField] private Button _menuResultButton;
+
+        [Header("Pause Modal")]
+        [SerializeField] private GameObject _pauseBackdrop;
+        [SerializeField] private GameObject _pausePanel;
+        [SerializeField] private Button _pauseBackdropButton;
+        [SerializeField] private Button _resumeButton;
+        [SerializeField] private Button _restartButton;
+        [SerializeField] private Button _quitToMenuButton;
 
         private Action _onPause;
         private Action _onResume;
         private Action _onRestart;
         private Action _onQuitToMenu;
 
-        public void Build()
+        private void Awake()
         {
-            var canvas = UiFactory.CreateCanvas(transform, "GameHUD");
-            var safe = UiFactory.CreateSafeArea(canvas.transform);
+            if (_pauseButton != null)
+                _pauseButton.onClick.AddListener(OnPausePressed);
+            if (_nextButton != null)
+                _nextButton.onClick.AddListener(OnNext);
+            if (_retryResultButton != null)
+                _retryResultButton.onClick.AddListener(SceneRouter.ReloadGame);
+            if (_menuResultButton != null)
+                _menuResultButton.onClick.AddListener(SceneRouter.LoadMenu);
+            if (_pauseBackdropButton != null)
+                _pauseBackdropButton.onClick.AddListener(OnResumePressed);
+            if (_resumeButton != null)
+                _resumeButton.onClick.AddListener(OnResumePressed);
+            if (_restartButton != null)
+                _restartButton.onClick.AddListener(OnRestartPressed);
+            if (_quitToMenuButton != null)
+                _quitToMenuButton.onClick.AddListener(OnQuitPressed);
 
-            var top = UiFactory.CreatePanel(safe, "TopBar", new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(0f, -20f), new Vector2(680f, 160f), PlaceholderArt.Panel);
-            _titleText = UiFactory.CreateText(top.transform, "Title", "DockIQ", 28, FontStyles.Bold,
-                new Vector2(0f, 50f), new Vector2(640f, 40f));
-            _requestText = UiFactory.CreateText(top.transform, "Request", "", 22, FontStyles.Normal,
-                new Vector2(0f, 8f), new Vector2(640f, 50f));
-            _timerText = UiFactory.CreateText(top.transform, "Timer", "0:00", 32, FontStyles.Bold,
-                new Vector2(0f, -48f), new Vector2(200f, 40f));
-            _timerText.color = PlaceholderArt.Hazard;
-
-            var bottom = UiFactory.CreatePanel(safe, "BottomBar", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
-                new Vector2(0f, 40f), new Vector2(680f, 80f), Color.clear);
-            _pauseButton = UiFactory.CreateButton(bottom.transform, "Pause", "Pause", new Vector2(0f, 0f),
-                OnPausePressed);
-
-            _resultPanel = UiFactory.CreatePanel(safe, "Result", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(560f, 320f), PlaceholderArt.Panel).gameObject;
-            _resultText = UiFactory.CreateText(_resultPanel.transform, "ResultText", "", 34, FontStyles.Bold,
-                new Vector2(0f, 60f), new Vector2(500f, 80f));
-            _nextButton = UiFactory.CreateButton(_resultPanel.transform, "Next", "Next Level", new Vector2(0f, -20f),
-                OnNext);
-            UiFactory.CreateButton(_resultPanel.transform, "RetryResult", "Retry", new Vector2(0f, -100f),
-                () => SceneRouter.ReloadGame());
-            UiFactory.CreateButton(_resultPanel.transform, "MenuResult", "Menu", new Vector2(0f, -180f),
-                () => SceneRouter.LoadMenu());
-
-            _resultPanel.SetActive(false);
-
-            _pauseBackdrop = UiFactory.CreatePanel(safe, "PauseBackdrop", Vector2.zero, Vector2.one,
-                Vector2.zero, Vector2.zero, new Color(0f, 0f, 0f, 0.35f)).gameObject;
-            var backdropRt = (RectTransform)_pauseBackdrop.transform;
-            UiFactory.StretchFull(backdropRt);
-            var backdropButton = _pauseBackdrop.AddComponent<Button>();
-            backdropButton.transition = Selectable.Transition.None;
-            backdropButton.onClick.AddListener(OnResumePressed);
-            _pauseBackdrop.SetActive(false);
-
-            _pausePanel = UiFactory.CreatePanel(safe, "PausePanel", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(560f, 380f), PlaceholderArt.Panel).gameObject;
-            UiFactory.CreateText(_pausePanel.transform, "PauseTitle", "Paused", 34, FontStyles.Bold,
-                new Vector2(0f, 120f), new Vector2(500f, 80f));
-            UiFactory.CreateButton(_pausePanel.transform, "Resume", "Resume", new Vector2(0f, 45f),
-                OnResumePressed);
-            UiFactory.CreateButton(_pausePanel.transform, "Restart", "Restart", new Vector2(0f, -45f),
-                OnRestartPressed);
-            UiFactory.CreateButton(_pausePanel.transform, "QuitToMenu", "Quit to Menu", new Vector2(0f, -135f),
-                OnQuitPressed);
-            _pausePanel.SetActive(false);
+            HidePause();
+            if (_resultPanel != null)
+                _resultPanel.SetActive(false);
         }
 
         public void ConfigurePause(Action onPause, Action onResume, Action onRestart, Action onQuitToMenu)
@@ -122,9 +102,13 @@ namespace DockIQ.Gameplay
                 _pauseButton.gameObject.SetActive(false);
 
             _resultPanel.SetActive(true);
-            _resultText.text = success ? $"Success\n{message}" : $"Failed\n{message}";
-            _resultText.color = success ? PlaceholderArt.DockGreen : PlaceholderArt.DockWrong;
-            _nextButton.gameObject.SetActive(success && hasNext);
+            if (_resultText != null)
+            {
+                _resultText.text = success ? $"Success\n{message}" : $"Failed\n{message}";
+                _resultText.color = success ? PlaceholderArt.DockGreen : PlaceholderArt.DockWrong;
+            }
+            if (_nextButton != null)
+                _nextButton.gameObject.SetActive(success && hasNext);
         }
 
         private void OnNext()

@@ -7,18 +7,26 @@ namespace DockIQ.Gameplay
 {
     public sealed class GameSceneController : MonoBehaviour
     {
+        [SerializeField] private GameHud _hud;
+        [SerializeField] private LevelController _controller;
+
         private void Awake()
         {
             var cam = Camera.main;
             if (cam != null)
                 cam.backgroundColor = PlaceholderArt.Navy;
 
-            var hud = gameObject.AddComponent<GameHud>();
-            hud.Build();
+            _hud ??= FindFirstObjectByType<GameHud>();
+            _controller ??= FindFirstObjectByType<LevelController>();
+
+            if (_hud == null || _controller == null)
+            {
+                Debug.LogError("Game scene is missing scene-authored HUD/LevelController references.");
+                return;
+            }
 
             var level = LevelCatalog.Get(ProgressStore.GetSelectedLevel());
-            var controller = gameObject.AddComponent<LevelController>();
-            controller.Begin(level, hud);
+            _controller.Begin(level, _hud);
         }
     }
 }
