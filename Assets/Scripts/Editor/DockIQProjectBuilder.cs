@@ -36,17 +36,89 @@ namespace DockIQ.Editor
         [MenuItem("DockIQ/Build Game Content")]
         public static void Build()
         {
+            BuildInternal(overwriteExistingScenes: false);
+        }
+
+        [MenuItem("DockIQ/Force Rebuild Scenes (Wipes Scene Edits)")]
+        public static void ForceRebuildScenes()
+        {
+            if (!EditorUtility.DisplayDialog(
+                    "Force Rebuild Scenes",
+                    "This will overwrite Splash, Main Menu, and Game scenes and wipe any manual edits.\n\nContinue?",
+                    "Overwrite Scenes",
+                    "Cancel"))
+                return;
+
+            BuildInternal(overwriteExistingScenes: true);
+        }
+
+        [MenuItem("DockIQ/Ensure Tutorial UI In Game Scene")]
+        public static void EnsureTutorialUiInGameScene()
+        {
+            string scenePath = SceneFolder + "/2_Game.unity";
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+            {
+                Debug.LogError($"DockIQ: Missing scene {scenePath}. Run Build Game Content first.");
+                return;
+            }
+
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            var hud = UnityEngine.Object.FindFirstObjectByType<GameHud>();
+            if (hud == null)
+            {
+                Debug.LogError("DockIQ: GameHud not found in game scene.");
+                return;
+            }
+
+            var so = new SerializedObject(hud);
+            var existingPanel = so.FindProperty("_tutorialPanel").objectReferenceValue as GameObject;
+            if (existingPanel != null)
+            {
+                Debug.Log("DockIQ: Tutorial UI already present — left scene edits untouched.");
+                return;
+            }
+
+            var safe = GameObject.Find("SafeArea");
+            if (safe == null)
+            {
+                Debug.LogError("DockIQ: SafeArea not found in game scene.");
+                return;
+            }
+
+            CreateAndWireTutorialUi(safe.transform, hud);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("DockIQ: Tutorial UI added to existing game scene (other edits preserved).");
+        }
+
+        [MenuItem("DockIQ/Clear Tutorial Progress")]
+        public static void ClearTutorialProgress()
+        {
+            ProgressStore.ClearTutorialTips();
+            Debug.Log("DockIQ: Tutorial tip progress cleared. Tips will show again on next play.");
+        }
+
+        private static void BuildInternal(bool overwriteExistingScenes)
+        {
             try
             {
                 EnsureFolders();
                 EnsureLogoResource();
-                BuildSplashScene();
-                BuildMenuScene();
-                BuildGameScene();
+                EnsureScene($"{SceneFolder}/0_SplashScene.unity", BuildSplashScene, overwriteExistingScenes);
+                EnsureScene($"{SceneFolder}/1_MainMenu.unity", BuildMenuScene, overwriteExistingScenes);
+                EnsureScene($"{SceneFolder}/2_Game.unity", BuildGameScene, overwriteExistingScenes);
+
+                // Non-destructive: if game scene was kept, still add tutorial UI when missing.
+                if (!overwriteExistingScenes &&
+                    AssetDatabase.LoadAssetAtPath<SceneAsset>($"{SceneFolder}/2_Game.unity") != null)
+                    EnsureTutorialUiInGameScene();
+
                 ConfigureBuildSettings();
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
-                Debug.Log("DOCKIQ_BUILD_COMPLETE");
+                Debug.Log(overwriteExistingScenes
+                    ? "DOCKIQ_FORCE_REBUILD_COMPLETE"
+                    : "DOCKIQ_BUILD_COMPLETE");
             }
             catch (Exception ex)
             {
@@ -58,6 +130,18 @@ namespace DockIQ.Editor
 
             if (Application.isBatchMode)
                 EditorApplication.Exit(0);
+        }
+
+        private static void EnsureScene(string scenePath, Action buildScene, bool overwriteExistingScenes)
+        {
+            bool exists = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) != null;
+            if (exists && !overwriteExistingScenes)
+            {
+                Debug.Log($"DockIQ: Keeping existing scene edits → {scenePath}");
+                return;
+            }
+
+            buildScene();
         }
 
         private static void EnsureFolders()
@@ -296,12 +380,41 @@ namespace DockIQ.Editor
             hudSo.FindProperty("_quitToMenuButton").objectReferenceValue = quitBtn;
             hudSo.ApplyModifiedPropertiesWithoutUndo();
 
+            CreateAndWireTutorialUi(safe, hud);
+
             var sceneSo = new SerializedObject(gameRoot.GetComponent<GameSceneController>());
             sceneSo.FindProperty("_hud").objectReferenceValue = hud;
             sceneSo.FindProperty("_controller").objectReferenceValue = controller;
             sceneSo.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, $"{SceneFolder}/2_Game.unity");
+        }
+
+        private static void CreateAndWireTutorialUi(Transform safe, GameHud hud)
+        {
+            var tutorialBackdrop = CreatePanel("TutorialBackdrop", safe, Vector2.zero, Vector2.one, Vector2.zero,
+                Vector2.zero, new Color(0f, 0f, 0f, 0.45f));
+            StretchFull((RectTransform)tutorialBackdrop.transform);
+            tutorialBackdrop.gameObject.SetActive(false);
+
+            var tutorialPanel = CreatePanel("TutorialPanel", safe, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(620f, 420f), PlaceholderArt.Panel).gameObject;
+            var tutorialTitle = CreateText("TutorialTitle", tutorialPanel.transform, "Tip", 32, FontStyles.Bold,
+                new Vector2(0f, 140f), new Vector2(560f, 60f), PlaceholderArt.Hazard);
+            var tutorialBody = CreateText("TutorialBody", tutorialPanel.transform, "", 24, FontStyles.Normal,
+                new Vector2(0f, 10f), new Vector2(540f, 200f), PlaceholderArt.Text);
+            var gotItBtn = CreateButton("TutorialGotItButton", tutorialPanel.transform, "Got it",
+                new Vector2(0f, -145f), new Vector2(240f, 72f));
+            gotItBtn.GetComponent<Image>().color = new Color(0.12f, 0.55f, 0.35f, 1f);
+            tutorialPanel.SetActive(false);
+
+            var hudSo = new SerializedObject(hud);
+            hudSo.FindProperty("_tutorialBackdrop").objectReferenceValue = tutorialBackdrop.gameObject;
+            hudSo.FindProperty("_tutorialPanel").objectReferenceValue = tutorialPanel;
+            hudSo.FindProperty("_tutorialTitle").objectReferenceValue = tutorialTitle;
+            hudSo.FindProperty("_tutorialBody").objectReferenceValue = tutorialBody;
+            hudSo.FindProperty("_tutorialGotItButton").objectReferenceValue = gotItBtn;
+            hudSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static Canvas CreateCanvas(string name)

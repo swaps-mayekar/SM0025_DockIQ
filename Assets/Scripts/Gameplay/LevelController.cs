@@ -16,12 +16,14 @@ namespace DockIQ.Gameplay
         private BoardView _view;
         private GameHud _hud;
         private readonly List<RobotActor> _robots = new List<RobotActor>();
+        private readonly Queue<TutorialTip> _pendingTips = new Queue<TutorialTip>();
 
         private float _tickTimer;
         private float _timeLeft;
         private bool _running;
         private bool _ended;
         private bool _paused;
+        private bool _tutorialActive;
         private Camera _cam;
 
         public void Begin(LevelDef level, GameHud hud)
@@ -31,9 +33,11 @@ namespace DockIQ.Gameplay
             _ended = false;
             _running = true;
             _paused = false;
+            _tutorialActive = false;
             _timeLeft = level.TimeLimit;
             _tickTimer = level.TickSeconds;
             _cam = Camera.main;
+            _pendingTips.Clear();
 
             _board = new GridBoard();
             _board.Build(level.ResolveLayers(), level.Movables, GameConstants.DefaultCellSize);
@@ -60,6 +64,7 @@ namespace DockIQ.Gameplay
             _hud.SetTimer(_timeLeft);
             _hud.HideResult();
             _hud.ConfigurePause(OnPaused, OnResumed, SceneRouter.ReloadGame, SceneRouter.LoadMenu);
+            BeginTutorials(level);
         }
 
         private void Update()
@@ -67,7 +72,7 @@ namespace DockIQ.Gameplay
             if (_ended)
                 return;
 
-            if (_paused)
+            if (_paused || _tutorialActive)
                 return;
 
             HandleTap();
@@ -237,6 +242,8 @@ namespace DockIQ.Gameplay
             _ended = true;
             _running = false;
             _paused = false;
+            _tutorialActive = false;
+            _pendingTips.Clear();
             ProgressStore.MarkLevelCompleted(_level.Id);
             _hud.ShowResult(true, $"{_level.RobotCallsign} reached {_level.DockName}!", _level.Id < LevelCatalog.Count);
         }
@@ -248,19 +255,69 @@ namespace DockIQ.Gameplay
             _ended = true;
             _running = false;
             _paused = false;
+            _tutorialActive = false;
+            _pendingTips.Clear();
             _hud.ShowResult(false, reason, false);
+        }
+
+        private void BeginTutorials(LevelDef level)
+        {
+            var tips = TutorialTipCatalog.GetPendingTips(level);
+            for (int i = 0; i < tips.Count; i++)
+                _pendingTips.Enqueue(tips[i]);
+
+            if (_pendingTips.Count > 0)
+                ShowNextTutorial();
+        }
+
+        private void ShowNextTutorial()
+        {
+            if (_ended || _pendingTips.Count == 0)
+            {
+                EndTutorialFlow();
+                return;
+            }
+
+            var tip = _pendingTips.Dequeue();
+            _tutorialActive = true;
+            if (!_hud.ShowTutorial(tip.Title, tip.Body, () => OnTutorialDismissed(tip.Id)))
+                EndTutorialFlow();
+        }
+
+        private void OnTutorialDismissed(string tipId)
+        {
+            TutorialTipCatalog.MarkDismissed(tipId);
+
+            if (_ended)
+            {
+                EndTutorialFlow();
+                return;
+            }
+
+            if (_pendingTips.Count > 0)
+                ShowNextTutorial();
+            else
+                EndTutorialFlow();
+        }
+
+        private void EndTutorialFlow()
+        {
+            _tutorialActive = false;
+            _pendingTips.Clear();
+            if (!_ended)
+                _hud.HideTutorial();
         }
 
         private void OnPaused()
         {
-            if (_ended)
+            if (_ended || _tutorialActive)
                 return;
             _paused = true;
         }
 
         private void OnResumed()
         {
-            if (_ended)
+            if (_ended || _tutorialActive)
                 return;
             _paused = false;
         }

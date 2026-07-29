@@ -9,6 +9,8 @@ namespace DockIQ.Core
         public int version = 1;
         public int highestUnlocked = 1;
         public int lastCompleted;
+        /// <summary>Comma-separated tutorial tip ids the player has already seen.</summary>
+        public string seenTutorialTips = "";
     }
 
     public static class ProgressStore
@@ -65,6 +67,42 @@ namespace DockIQ.Core
         {
             PlayerPrefs.SetInt(GameConstants.PrefSelectedLevel, Mathf.Clamp(levelId, 1, GameConstants.TotalLevels));
             PlayerPrefs.Save();
+        }
+
+        public static bool HasSeenTutorialTip(string tipId)
+        {
+            if (string.IsNullOrEmpty(tipId))
+                return true;
+
+            string seen = Current.seenTutorialTips ?? "";
+            if (string.IsNullOrEmpty(seen))
+                return false;
+
+            var parts = seen.Split(',');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i] == tipId)
+                    return true;
+            }
+
+            return false;
+        }
+
+        public static void MarkTutorialTipSeen(string tipId)
+        {
+            if (string.IsNullOrEmpty(tipId) || HasSeenTutorialTip(tipId))
+                return;
+
+            Current.seenTutorialTips = string.IsNullOrEmpty(Current.seenTutorialTips)
+                ? tipId
+                : Current.seenTutorialTips + "," + tipId;
+            Save();
+        }
+
+        public static void ClearTutorialTips()
+        {
+            Current.seenTutorialTips = "";
+            Save();
         }
     }
 }

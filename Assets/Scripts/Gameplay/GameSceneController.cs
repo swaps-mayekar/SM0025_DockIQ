@@ -10,7 +10,7 @@ namespace DockIQ.Gameplay
         [SerializeField] private GameHud _hud;
         [SerializeField] private LevelController _controller;
 
-        private void Awake()
+        private void Start()
         {
             var cam = Camera.main;
             if (cam != null)
