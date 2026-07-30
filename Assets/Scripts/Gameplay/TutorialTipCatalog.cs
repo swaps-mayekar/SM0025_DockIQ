@@ -36,7 +36,7 @@ namespace DockIQ.Gameplay
 
         public static IReadOnlyList<TutorialTip> AllTips { get; } = new[]
         {
-            new TutorialTip(MissionBasics, "Warehouse Rescue",
+            new TutorialTip(MissionBasics, "Manual Control",
                 "Robots drive the rails on their own. Tap switches to reroute the highlighted rescue robot to the correct dock before time runs out."),
             new TutorialTip(WrongDock, "Pick the Right Gate",
                 "Multiple docks are open. Only the named dock counts — the wrong bay fails the rescue."),

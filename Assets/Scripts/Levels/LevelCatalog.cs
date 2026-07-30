@@ -51,7 +51,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 1, Title = "AI Offline",
-                RequestText = "Guide Robot #A13 to Tokyo Dock",
+                RequestText = "Red organ canister → Tokyo Dock via #A13",
                 RobotCallsign = "#A13", DockName = "Tokyo Dock", TargetDockId = 1,
                 TimeLimit = 50f, TickSeconds = 0.48f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -67,7 +67,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 2, Title = "Wrong Bay",
-                RequestText = "Guide Robot #B07 to Tokyo Dock",
+                RequestText = "Cryo plasma pack → Tokyo Dock (not the decoy bay)",
                 RobotCallsign = "#B07", DockName = "Tokyo Dock", TargetDockId = 2,
                 TimeLimit = 45f, TickSeconds = 0.44f,
                 RobotStart = new Vector2Int(1, 5), RobotFacing = Dir.East,
@@ -85,7 +85,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 3, Title = "Busy Yard",
-                RequestText = "Guide Robot #C21 to Chicago Dock",
+                RequestText = "Chilled vaccine crate → Chicago Dock",
                 RobotCallsign = "#C21", DockName = "Chicago Dock", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.42f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -103,7 +103,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 4, Title = "Fork Choice",
-                RequestText = "Guide Robot #D11 to Seoul Dock",
+                RequestText = "Hospital microchips → Seoul Dock",
                 RobotCallsign = "#D11", DockName = "Seoul Dock", TargetDockId = 2,
                 TimeLimit = 42f, TickSeconds = 0.42f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -120,7 +120,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 5, Title = "Drawbridge",
-                RequestText = "Guide Robot #D04 to Berlin Dock",
+                RequestText = "Storm battery cells → Berlin Dock",
                 RobotCallsign = "#D04", DockName = "Berlin Dock", TargetDockId = 1,
                 TimeLimit = 32f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(0, 3), RobotFacing = Dir.East,
@@ -136,7 +136,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 6, Title = "Turntable Intro",
-                RequestText = "Guide Robot #E01 to Osaka Dock",
+                RequestText = "Surgical tools → Osaka Dock",
                 RobotCallsign = "#E01", DockName = "Osaka Dock", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.42f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -152,7 +152,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 7, Title = "Bridge & Bend",
-                RequestText = "Guide Robot #E12 to Rome Dock",
+                RequestText = "Rare blood packs → Rome Dock",
                 RobotCallsign = "#E12", DockName = "Rome Dock", TargetDockId = 1,
                 TimeLimit = 36f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -168,7 +168,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 8, Title = "Lift & Turntable",
-                RequestText = "Guide Robot #E99 to Osaka Dock",
+                RequestText = "Transplant cooler → Osaka Dock",
                 RobotCallsign = "#E99", DockName = "Osaka Dock", TargetDockId = 2,
                 TimeLimit = 38f, TickSeconds = 0.38f,
                 RobotStart = new Vector2Int(1, 5), RobotFacing = Dir.East,
@@ -189,7 +189,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 9, Title = "Mirror Hall",
-                RequestText = "Guide Robot #F09 to Paris Dock",
+                RequestText = "Fragile optics crate → Paris Dock",
                 RobotCallsign = "#F09", DockName = "Paris Dock", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.42f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -205,7 +205,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 10, Title = "Bounce Back",
-                RequestText = "Guide Robot #F10 to Madrid Dock",
+                RequestText = "Insulin vials → Madrid Dock",
                 RobotCallsign = "#F10", DockName = "Madrid Dock", TargetDockId = 1,
                 TimeLimit = 38f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 2), RobotFacing = Dir.East,
@@ -221,7 +221,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 11, Title = "Double Mirror",
-                RequestText = "Guide Robot #F11 to Lisbon Dock",
+                RequestText = "Neonatal incubator kit → Lisbon Dock",
                 RobotCallsign = "#F11", DockName = "Lisbon Dock", TargetDockId = 2,
                 TimeLimit = 42f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -237,7 +237,7 @@ namespace DockIQ.Levels
             Add(new LevelDef
             {
                 Id = 12, Title = "Reflect & Bridge",
-                RequestText = "Guide Robot #F12 to Vienna Dock",
+                RequestText = "Avionics spares → Vienna Dock",
                 RobotCallsign = "#F12", DockName = "Vienna Dock", TargetDockId = 1,
                 TimeLimit = 36f, TickSeconds = 0.38f,
                 RobotStart = new Vector2Int(0, 3), RobotFacing = Dir.East,

@@ -267,6 +267,17 @@ namespace DockIQ.Gameplay
 
         private void BeginTutorials(LevelDef level)
         {
+            _pendingTips.Clear();
+
+            if (GameSession.IsStory)
+            {
+                var intro = StoryBriefingCatalog.TryGetCampaignIntro();
+                if (intro.HasValue)
+                    _pendingTips.Enqueue(intro.Value);
+
+                _pendingTips.Enqueue(StoryBriefingCatalog.GetLevelBriefing(level));
+            }
+
             var tips = TutorialTipCatalog.GetPendingTips(level);
             for (int i = 0; i < tips.Count; i++)
                 _pendingTips.Enqueue(tips[i]);
@@ -291,7 +302,9 @@ namespace DockIQ.Gameplay
 
         private void OnTutorialDismissed(string tipId)
         {
-            TutorialTipCatalog.MarkDismissed(tipId);
+            // Level briefings re-show every Story start; campaign intro & mechanic tips persist.
+            if (!StoryBriefingCatalog.IsBriefingTip(tipId))
+                TutorialTipCatalog.MarkDismissed(tipId);
 
             if (_ended)
             {

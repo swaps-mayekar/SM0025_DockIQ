@@ -12,7 +12,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 13, Title = "Clear the Aisle",
-                RequestText = "Slide the fallen bot, then guide #G13 to Dock",
+                RequestText = "Yellow biohazard cooler → Dock 1",
                 RobotCallsign = "#G13", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.42f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -32,7 +32,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 14, Title = "Side Track Block",
-                RequestText = "Move the obstacle off the main line",
+                RequestText = "City-grid failover drives → Dock 1",
                 RobotCallsign = "#G14", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 38f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -52,7 +52,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 15, Title = "Two Crates",
-                RequestText = "Clear both blockers for #G15",
+                RequestText = "Fire-suppressant canisters → Dock 1",
                 RobotCallsign = "#G15", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 45f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -73,7 +73,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 16, Title = "Decoy Jam",
-                RequestText = "Slide scrap aside before #G16 arrives",
+                RequestText = "Priority Red evidence pouch → Dock 1",
                 RobotCallsign = "#G16", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 36f, TickSeconds = 0.38f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -95,7 +95,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 17, Title = "Narrow Gap",
-                RequestText = "Park the obstacle on the spur",
+                RequestText = "Organ-preservation pouch → Dock 2",
                 RobotCallsign = "#G17", DockName = "Dock 2", TargetDockId = 2,
                 TimeLimit = 42f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -115,7 +115,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 18, Title = "Obstacle Timing",
-                RequestText = "Open a window for #G18",
+                RequestText = "Live coral research sample → Dock 1",
                 RobotCallsign = "#G18", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 34f, TickSeconds = 0.36f,
                 RobotStart = new Vector2Int(0, 3), RobotFacing = Dir.East,
@@ -136,7 +136,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 19, Title = "Sliding Turntable",
-                RequestText = "Slide the turntable onto the junction for #H19",
+                RequestText = "Defibrillator units → Dock 1",
                 RobotCallsign = "#H19", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 42f, TickSeconds = 0.42f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -157,7 +157,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 20, Title = "Path Pivot",
-                RequestText = "Slide the rotator onto the drop for dock 1",
+                RequestText = "Cryogenic stem-cell case → Dock 1",
                 RobotCallsign = "#H20", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -178,7 +178,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 21, Title = "Mobile Mirror",
-                RequestText = "Slide the reflector into place",
+                RequestText = "Night-vision optics → Dock 1",
                 RobotCallsign = "#H21", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 2), RobotFacing = Dir.East,
@@ -198,7 +198,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 22, Title = "Rotator Relay",
-                RequestText = "Slide the turntable onto the junction for dock 2",
+                RequestText = "Sealed antidote drum → Dock 2",
                 RobotCallsign = "#H22", DockName = "Dock 2", TargetDockId = 2,
                 TimeLimit = 44f, TickSeconds = 0.40f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -220,7 +220,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 23, Title = "Twin Movers",
-                RequestText = "Slide the turntable into place and clear scrap",
+                RequestText = "Emergency radio kits → Dock 1",
                 RobotCallsign = "#H23", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 46f, TickSeconds = 0.38f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
@@ -242,7 +242,7 @@ namespace DockIQ.Levels
             add(new LevelDef
             {
                 Id = 24, Title = "Mirror Slide",
-                RequestText = "Bounce #H24 with a moving mirror",
+                RequestText = "Diplomatic gold pouch → Dock 1",
                 RobotCallsign = "#H24", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 38f, TickSeconds = 0.38f,
                 RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
