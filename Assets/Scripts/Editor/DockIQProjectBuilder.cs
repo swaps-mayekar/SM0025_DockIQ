@@ -25,8 +25,8 @@ namespace DockIQ.Editor
             if (Application.isBatchMode || SessionState.GetBool("DockIQ.ContentBuilt", false))
                 return;
 
-            if (AssetDatabase.LoadAssetAtPath<SceneAsset>($"{SceneFolder}/1_MainMenu.unity") != null &&
-                AssetDatabase.LoadAssetAtPath<SceneAsset>($"{SceneFolder}/2_Game.unity") != null)
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SceneFolder + "/1_MainMenu.unity") != null &&
+                AssetDatabase.LoadAssetAtPath<SceneAsset>(SceneFolder + "/2_Game.unity") != null)
                 return;
 
             SessionState.SetBool("DockIQ.ContentBuilt", true);
@@ -98,6 +98,169 @@ namespace DockIQ.Editor
             Debug.Log("DockIQ: Tutorial tip progress cleared. Tips will show again on next play.");
         }
 
+        [MenuItem("DockIQ/Ensure Main Menu Modes")]
+        public static void EnsureMainMenuModes()
+        {
+            string scenePath = SceneFolder + "/1_MainMenu.unity";
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+            {
+                Debug.LogError($"DockIQ: Missing scene {scenePath}. Run Build Game Content first.");
+                return;
+            }
+
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            var menu = UnityEngine.Object.FindFirstObjectByType<MainMenuController>();
+            if (menu == null)
+            {
+                Debug.LogError("DockIQ: MainMenuController not found in main menu scene.");
+                return;
+            }
+
+            var canvas = GameObject.Find("MenuCanvas");
+            if (canvas == null)
+            {
+                Debug.LogError("DockIQ: MenuCanvas not found in main menu scene.");
+                return;
+            }
+
+            var canvasRt = (RectTransform)canvas.transform;
+            var playPanel = FindInSceneIncludingInactive(scene, "Panel_Play");
+            if (playPanel == null)
+            {
+                // Fallback: search all loaded transforms (includes inactive).
+                var transforms = UnityEngine.Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Include, FindObjectsSortMode.None);
+                for (int i = 0; i < transforms.Length; i++)
+                {
+                    if (transforms[i] != null && transforms[i].name == "Panel_Play" &&
+                        transforms[i].gameObject.scene.path == scenePath)
+                    {
+                        playPanel = transforms[i].gameObject;
+                        break;
+                    }
+                }
+            }
+
+            if (playPanel == null)
+            {
+                var roots = scene.GetRootGameObjects();
+                var names = new System.Text.StringBuilder();
+                for (int i = 0; i < roots.Length; i++)
+                    names.Append(roots[i].name).Append(i + 1 < roots.Length ? ", " : "");
+                Debug.LogError("DockIQ: Panel_Play not found after opening main menu. Roots: " + names);
+                return;
+            }
+
+            var so = new SerializedObject(menu);
+            var existingHome = so.FindProperty("_homePanel").objectReferenceValue as GameObject;
+            if (existingHome != null)
+            {
+                Debug.Log("DockIQ: Main menu modes already present — left scene edits untouched.");
+                return;
+            }
+
+            // Hide the old primary Play button inside Free Play; Story is the home CTA.
+            var legacyPlay = playPanel.transform.Find("PlayButton");
+            if (legacyPlay != null)
+                legacyPlay.gameObject.SetActive(false);
+
+            var levelsLabel = playPanel.transform.Find("LevelsLabel");
+            if (levelsLabel != null)
+            {
+                var labelTmp = levelsLabel.GetComponent<TextMeshProUGUI>();
+                if (labelTmp != null)
+                    labelTmp.text = "Free Play";
+            }
+
+            var playBack = CreateButton("BackButton", playPanel.transform, "Back",
+                new Vector2(0f, 820f), new Vector2(220f, 72f));
+
+            var homePanel = CreateFullScreenPanel("Panel_Home", canvasRt);
+            homePanel.transform.SetSiblingIndex(playPanel.transform.GetSiblingIndex());
+
+            CreateText("Tagline", homePanel.transform, "WAREHOUSE RESCUE", 34, FontStyles.Bold,
+                new Vector2(0f, 760f), new Vector2(900f, 50f), PlaceholderArt.Hazard);
+            var storyProgress = CreateText("StoryProgress", homePanel.transform, "Story Progress  0/48", 26,
+                FontStyles.Normal, new Vector2(0f, 680f), new Vector2(900f, 40f), PlaceholderArt.Text);
+            var storyMission = CreateText("StoryMission", homePanel.transform, "Continue: Level 1", 24,
+                FontStyles.Normal, new Vector2(0f, 620f), new Vector2(960f, 50f), PlaceholderArt.Text);
+
+            var storyBtn = CreateButton("StoryButton", homePanel.transform, "Story Mode",
+                new Vector2(0f, 480f), new Vector2(420f, 90f));
+            storyBtn.GetComponent<Image>().color = new Color(0.12f, 0.55f, 0.35f, 1f);
+
+            var freePlayBtn = CreateButton("FreePlayButton", homePanel.transform, "Free Play",
+                new Vector2(0f, 360f), new Vector2(420f, 90f));
+            var achievementsBtn = CreateButton("AchievementsButton", homePanel.transform, "Achievements",
+                new Vector2(0f, 240f), new Vector2(420f, 90f));
+            var howToBtn = CreateButton("HowToPlayButton", homePanel.transform, "How to Play",
+                new Vector2(0f, 120f), new Vector2(420f, 90f));
+
+            CreateText("HomeHint", homePanel.transform,
+                "Story advances the rescue campaign. Free Play replays unlocked levels.",
+                20, FontStyles.Normal, new Vector2(0f, -40f), new Vector2(920f, 80f), PlaceholderArt.Text);
+
+            var achievementsPanel = CreateModalPanel("Panel_Achievements", canvasRt, "Achievements",
+                "Achievements coming soon.\n\nComplete Story rescues to unlock future badges for perfect runs, decoy-free clears, and full-yard mastery.",
+                out Button achievementsBack);
+
+            var howToPanel = CreateScrollModalPanel("Panel_HowToPlay", canvasRt, "How to Play",
+                out TextMeshProUGUI howToBody, out Button howToBack);
+
+            playPanel.SetActive(false);
+            achievementsPanel.SetActive(false);
+            howToPanel.SetActive(false);
+            homePanel.SetActive(true);
+
+            so.FindProperty("_homePanel").objectReferenceValue = homePanel;
+            so.FindProperty("_storyButton").objectReferenceValue = storyBtn;
+            so.FindProperty("_freePlayButton").objectReferenceValue = freePlayBtn;
+            so.FindProperty("_achievementsButton").objectReferenceValue = achievementsBtn;
+            so.FindProperty("_howToPlayButton").objectReferenceValue = howToBtn;
+            so.FindProperty("_storyProgressText").objectReferenceValue = storyProgress;
+            so.FindProperty("_storyMissionText").objectReferenceValue = storyMission;
+            so.FindProperty("_playPanel").objectReferenceValue = playPanel;
+            so.FindProperty("_playBackButton").objectReferenceValue = playBack;
+            so.FindProperty("_achievementsPanel").objectReferenceValue = achievementsPanel;
+            so.FindProperty("_achievementsBackButton").objectReferenceValue = achievementsBack;
+            so.FindProperty("_howToPlayPanel").objectReferenceValue = howToPanel;
+            so.FindProperty("_howToPlayBackButton").objectReferenceValue = howToBack;
+            so.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("DockIQ: Main menu modes added (MenuBG / GameLogo preserved).");
+        }
+
+        private static GameObject FindInSceneIncludingInactive(UnityEngine.SceneManagement.Scene scene, string name)
+        {
+            var roots = scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                var found = FindChildRecursive(roots[i].transform, name);
+                if (found != null)
+                    return found.gameObject;
+            }
+
+            return null;
+        }
+
+        private static Transform FindChildRecursive(Transform parent, string name)
+        {
+            if (parent.name == name)
+                return parent;
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var found = FindChildRecursive(parent.GetChild(i), name);
+                if (found != null)
+                    return found;
+            }
+
+            return null;
+        }
+
         private static void BuildInternal(bool overwriteExistingScenes)
         {
             try
@@ -112,6 +275,11 @@ namespace DockIQ.Editor
                 if (!overwriteExistingScenes &&
                     AssetDatabase.LoadAssetAtPath<SceneAsset>($"{SceneFolder}/2_Game.unity") != null)
                     EnsureTutorialUiInGameScene();
+
+                // Non-destructive: upgrade existing main menu to mode hub when missing.
+                if (!overwriteExistingScenes &&
+                    AssetDatabase.LoadAssetAtPath<SceneAsset>($"{SceneFolder}/1_MainMenu.unity") != null)
+                    EnsureMainMenuModes();
 
                 ConfigureBuildSettings();
                 AssetDatabase.SaveAssets();
@@ -220,19 +388,39 @@ namespace DockIQ.Editor
             var menu = menuGo.GetComponent<MainMenuController>();
 
             var canvas = CreateCanvas("MenuCanvas");
-            var safe = CreateSafeArea(canvas.transform);
+            var root = (RectTransform)canvas.transform;
 
-            CreateText("Title", safe, "DockIQ", 72, FontStyles.Bold, new Vector2(0f, 900f),
+            var homePanel = CreateFullScreenPanel("Panel_Home", root);
+            CreateText("Title", homePanel.transform, "DockIQ", 72, FontStyles.Bold, new Vector2(0f, 900f),
                 new Vector2(900f, 100f), Color.white);
-            CreateText("Subtitle", safe, "Warehouse Rescue", 34, FontStyles.Bold, new Vector2(0f, 820f),
-                new Vector2(900f, 50f), PlaceholderArt.Hazard);
-            var playButton = CreateButton("PlayButton", safe, "Play", new Vector2(0f, 680f), new Vector2(220f, 72f));
-            playButton.GetComponent<Image>().color = new Color(0.12f, 0.55f, 0.35f, 1f);
-            CreateText("LevelsLabel", safe, "Levels", 30, FontStyles.Bold, new Vector2(0f, 560f),
-                new Vector2(400f, 40f), PlaceholderArt.Text);
+            CreateText("Tagline", homePanel.transform, "WAREHOUSE RESCUE", 34, FontStyles.Bold,
+                new Vector2(0f, 820f), new Vector2(900f, 50f), PlaceholderArt.Hazard);
+            var storyProgress = CreateText("StoryProgress", homePanel.transform, "Story Progress  0/48", 26,
+                FontStyles.Normal, new Vector2(0f, 720f), new Vector2(900f, 40f), PlaceholderArt.Text);
+            var storyMission = CreateText("StoryMission", homePanel.transform, "Continue: Level 1", 24,
+                FontStyles.Normal, new Vector2(0f, 660f), new Vector2(960f, 50f), PlaceholderArt.Text);
+
+            var storyBtn = CreateButton("StoryButton", homePanel.transform, "Story Mode",
+                new Vector2(0f, 520f), new Vector2(420f, 90f));
+            storyBtn.GetComponent<Image>().color = new Color(0.12f, 0.55f, 0.35f, 1f);
+            var freePlayBtn = CreateButton("FreePlayButton", homePanel.transform, "Free Play",
+                new Vector2(0f, 400f), new Vector2(420f, 90f));
+            var achievementsBtn = CreateButton("AchievementsButton", homePanel.transform, "Achievements",
+                new Vector2(0f, 280f), new Vector2(420f, 90f));
+            var howToBtn = CreateButton("HowToPlayButton", homePanel.transform, "How to Play",
+                new Vector2(0f, 160f), new Vector2(420f, 90f));
+            CreateText("HomeHint", homePanel.transform,
+                "Story advances the rescue campaign. Free Play replays unlocked levels.",
+                20, FontStyles.Normal, new Vector2(0f, 20f), new Vector2(920f, 80f), PlaceholderArt.Text);
+
+            var playPanel = CreateFullScreenPanel("Panel_Play", root);
+            CreateText("LevelsLabel", playPanel.transform, "Free Play", 30, FontStyles.Bold,
+                new Vector2(0f, 900f), new Vector2(400f, 40f), PlaceholderArt.Text);
+            var playBack = CreateButton("BackButton", playPanel.transform, "Back",
+                new Vector2(0f, 820f), new Vector2(220f, 72f));
 
             var scrollGo = new GameObject("LevelScroll", typeof(RectTransform), typeof(Image), typeof(ScrollRect));
-            scrollGo.transform.SetParent(safe, false);
+            scrollGo.transform.SetParent(playPanel.transform, false);
             var scrollRt = (RectTransform)scrollGo.transform;
             scrollRt.anchorMin = scrollRt.anchorMax = new Vector2(0.5f, 0.5f);
             scrollRt.pivot = new Vector2(0.5f, 0.5f);
@@ -295,18 +483,125 @@ namespace DockIQ.Editor
                 levelViews.Add(view);
             }
 
-            CreateText("Hint", safe,
+            CreateText("Hint", playPanel.transform,
                 "Tap switches, turntables, bridges & liftables. Slide path pieces. Avoid scrap - collisions fail!",
                 20, FontStyles.Normal, new Vector2(0f, -920f), new Vector2(960f, 110f), PlaceholderArt.Text);
 
+            var achievementsPanel = CreateModalPanel("Panel_Achievements", root, "Achievements",
+                "Achievements coming soon.\n\nComplete Story rescues to unlock future badges for perfect runs, decoy-free clears, and full-yard mastery.",
+                out Button achievementsBack);
+            var howToPanel = CreateScrollModalPanel("Panel_HowToPlay", root, "How to Play",
+                out TextMeshProUGUI howToBody, out Button howToBack);
+
+            playPanel.SetActive(false);
+            achievementsPanel.SetActive(false);
+            howToPanel.SetActive(false);
+            homePanel.SetActive(true);
+
             var menuSo = new SerializedObject(menu);
-            menuSo.FindProperty("_playButton").objectReferenceValue = playButton;
+            menuSo.FindProperty("_homePanel").objectReferenceValue = homePanel;
+            menuSo.FindProperty("_storyButton").objectReferenceValue = storyBtn;
+            menuSo.FindProperty("_freePlayButton").objectReferenceValue = freePlayBtn;
+            menuSo.FindProperty("_achievementsButton").objectReferenceValue = achievementsBtn;
+            menuSo.FindProperty("_howToPlayButton").objectReferenceValue = howToBtn;
+            menuSo.FindProperty("_storyProgressText").objectReferenceValue = storyProgress;
+            menuSo.FindProperty("_storyMissionText").objectReferenceValue = storyMission;
+            menuSo.FindProperty("_playPanel").objectReferenceValue = playPanel;
+            menuSo.FindProperty("_playBackButton").objectReferenceValue = playBack;
             menuSo.FindProperty("_levelButtons").arraySize = levelViews.Count;
             for (int i = 0; i < levelViews.Count; i++)
                 menuSo.FindProperty("_levelButtons").GetArrayElementAtIndex(i).objectReferenceValue = levelViews[i];
+            menuSo.FindProperty("_achievementsPanel").objectReferenceValue = achievementsPanel;
+            menuSo.FindProperty("_achievementsBackButton").objectReferenceValue = achievementsBack;
+            menuSo.FindProperty("_howToPlayPanel").objectReferenceValue = howToPanel;
+            menuSo.FindProperty("_howToPlayBackButton").objectReferenceValue = howToBack;
+            menuSo.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
             menuSo.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, $"{SceneFolder}/1_MainMenu.unity");
+        }
+
+        private static GameObject CreateFullScreenPanel(string name, Transform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            StretchFull((RectTransform)go.transform);
+            return go;
+        }
+
+        private static GameObject CreateModalPanel(string name, Transform parent, string title, string body,
+            out Button backButton)
+        {
+            var panel = CreateFullScreenPanel(name, parent);
+            var card = CreatePanel("Card", panel.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(860f, 720f), PlaceholderArt.Panel);
+            CreateText("Title", card.transform, title, 40, FontStyles.Bold,
+                new Vector2(0f, 280f), new Vector2(780f, 60f), PlaceholderArt.Hazard);
+            CreateText("Body", card.transform, body, 24, FontStyles.Normal,
+                new Vector2(0f, 20f), new Vector2(760f, 420f), PlaceholderArt.Text);
+            backButton = CreateButton("BackButton", card.transform, "Back",
+                new Vector2(0f, -260f), new Vector2(240f, 72f));
+            return panel;
+        }
+
+        private static GameObject CreateScrollModalPanel(string name, Transform parent, string title,
+            out TextMeshProUGUI body, out Button backButton)
+        {
+            var panel = CreateFullScreenPanel(name, parent);
+            var card = CreatePanel("Card", panel.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(920f, 1400f), PlaceholderArt.Panel);
+            CreateText("Title", card.transform, title, 40, FontStyles.Bold,
+                new Vector2(0f, 600f), new Vector2(840f, 60f), PlaceholderArt.Hazard);
+
+            var scrollGo = new GameObject("BodyScroll", typeof(RectTransform), typeof(Image), typeof(ScrollRect));
+            scrollGo.transform.SetParent(card.transform, false);
+            var scrollRt = (RectTransform)scrollGo.transform;
+            scrollRt.anchorMin = scrollRt.anchorMax = new Vector2(0.5f, 0.5f);
+            scrollRt.anchoredPosition = new Vector2(0f, 40f);
+            scrollRt.sizeDelta = new Vector2(840f, 1000f);
+            scrollGo.GetComponent<Image>().color = new Color(0.05f, 0.09f, 0.14f, 0.65f);
+            var scroll = scrollGo.GetComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.scrollSensitivity = 40f;
+
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(Image), typeof(Mask));
+            viewportGo.transform.SetParent(scrollGo.transform, false);
+            var viewportRt = (RectTransform)viewportGo.transform;
+            StretchFull(viewportRt);
+            viewportRt.offsetMin = new Vector2(16f, 16f);
+            viewportRt.offsetMax = new Vector2(-16f, -16f);
+            viewportGo.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
+            viewportGo.GetComponent<Mask>().showMaskGraphic = false;
+
+            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(ContentSizeFitter));
+            contentGo.transform.SetParent(viewportGo.transform, false);
+            var contentRt = (RectTransform)contentGo.transform;
+            contentRt.anchorMin = new Vector2(0f, 1f);
+            contentRt.anchorMax = new Vector2(1f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 1f);
+            contentRt.anchoredPosition = Vector2.zero;
+            contentRt.sizeDelta = new Vector2(0f, 0f);
+            contentGo.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            body = CreateText("Body", contentGo.transform, "", 22, FontStyles.Normal,
+                Vector2.zero, new Vector2(780f, 2000f), PlaceholderArt.Text);
+            body.alignment = TextAlignmentOptions.TopLeft;
+            var bodyRt = (RectTransform)body.transform;
+            bodyRt.anchorMin = new Vector2(0f, 1f);
+            bodyRt.anchorMax = new Vector2(1f, 1f);
+            bodyRt.pivot = new Vector2(0.5f, 1f);
+            bodyRt.anchoredPosition = Vector2.zero;
+            bodyRt.sizeDelta = new Vector2(-20f, 2000f);
+            body.enableAutoSizing = false;
+
+            scroll.content = contentRt;
+            scroll.viewport = viewportRt;
+
+            backButton = CreateButton("BackButton", card.transform, "Back",
+                new Vector2(0f, -620f), new Vector2(240f, 72f));
+            return panel;
         }
 
         private static void BuildGameScene()
@@ -473,7 +768,7 @@ namespace DockIQ.Editor
             tmp.fontStyle = style;
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.color = color;
-            tmp.enableWordWrapping = true;
+            tmp.textWrappingMode = TextWrappingModes.Normal;
             tmp.raycastTarget = false;
             return tmp;
         }

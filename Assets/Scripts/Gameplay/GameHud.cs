@@ -171,6 +171,11 @@ namespace DockIQ.Gameplay
         {
             int current = ProgressStore.GetSelectedLevel();
             int next = Mathf.Min(current + 1, LevelCatalog.Count);
+
+            // Free Play only advances into already-unlocked levels.
+            if (!GameSession.IsStory && !ProgressStore.IsUnlocked(next))
+                return;
+
             ProgressStore.SetSelectedLevel(next);
             SceneRouter.ReloadGame();
         }

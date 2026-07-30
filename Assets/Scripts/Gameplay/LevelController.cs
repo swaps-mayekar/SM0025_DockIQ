@@ -244,8 +244,13 @@ namespace DockIQ.Gameplay
             _paused = false;
             _tutorialActive = false;
             _pendingTips.Clear();
-            ProgressStore.MarkLevelCompleted(_level.Id);
-            _hud.ShowResult(true, $"{_level.RobotCallsign} reached {_level.DockName}!", _level.Id < LevelCatalog.Count);
+            if (GameSession.IsStory)
+                ProgressStore.MarkLevelCompleted(_level.Id);
+
+            bool hasNext = GameSession.IsStory
+                ? _level.Id < LevelCatalog.Count
+                : _level.Id < LevelCatalog.Count && ProgressStore.IsUnlocked(_level.Id + 1);
+            _hud.ShowResult(true, $"{_level.RobotCallsign} reached {_level.DockName}!", hasNext);
         }
 
         private void Fail(string reason)
