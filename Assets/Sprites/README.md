@@ -28,8 +28,12 @@ Rescue cargo uses `SpriteCatalog.ParcelForLevel(levelId)` (`Parcels_0` = level 1
 ## Docks / UI
 | File | Use |
 |------|-----|
-| `dock.png` | Shipping dock / gate |
+| `Assets/UI/Gates.png` | Authoring spritesheet (4 dock gates, `Gates_0`…`Gates_3`) |
+| `Assets/Resources/UI/Gates.png` | Runtime copy loaded per dock id |
+| `dock.png` | Fallback shipping dock / gate |
 | `banner_panel.png` | Mission HUD |
+
+Dock gates use `SpriteCatalog.GateForDockId(dockId)` (`Gates_0` = dock 1 blue, `Gates_1` = dock 2 green, `Gates_2` = dock 3 red, `Gates_3` = dock 4 yellow).
 
 ## Gameplay legend (level strings)
 

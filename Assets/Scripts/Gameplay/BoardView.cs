@@ -41,16 +41,31 @@ namespace DockIQ.Gameplay
                 float alpha = L > 0 ? 0.88f : 1f;
 
                 var tile = CreateSprite($"Cell_{L}_{x}_{y}", pos, depth);
-                tile.sprite = PlaceholderArt.IsoDiamond();
+                Sprite gate = cell.Type == CellType.Dock
+                    ? SpriteCatalog.GateForDockId(cell.DockId)
+                    : null;
+                if (gate != null)
+                {
+                    tile.sprite = gate;
+                    // Gate cells are ~480px at 100 PPU — shrink to fit the iso board cell.
+                    tile.transform.localScale = Vector3.one * (board.CellSize * 0.28f);
+                }
+                else
+                {
+                    tile.sprite = PlaceholderArt.IsoDiamond();
+                    tile.transform.localScale = Vector3.one * board.CellSize;
+                }
+
                 var col = ColorFor(cell);
                 col.a *= alpha;
                 tile.color = col;
-                tile.transform.localScale = Vector3.one * board.CellSize;
                 _tiles[L, x, y] = tile;
 
                 if (cell.Type == CellType.Dock)
                 {
-                    AddLabel(L, x, y, pos, depth, cell.DockId.ToString());
+                    // Gate art already shows bay number/color; keep text only for placeholder diamonds.
+                    if (gate == null)
+                        AddLabel(L, x, y, pos, depth, cell.DockId.ToString());
                 }
                 else if (cell.IsLift)
                 {
@@ -224,7 +239,9 @@ namespace DockIQ.Gameplay
                         ? PlaceholderArt.LiftableUp
                         : PlaceholderArt.Obstacle;
                 case CellType.Dock:
-                    return PlaceholderArt.DockGreen;
+                    return SpriteCatalog.GateForDockId(cell.DockId) != null
+                        ? Color.white
+                        : PlaceholderArt.DockGreen;
                 case CellType.Spawn:
                     return new Color(0.25f, 0.45f, 0.65f, 1f);
                 default:

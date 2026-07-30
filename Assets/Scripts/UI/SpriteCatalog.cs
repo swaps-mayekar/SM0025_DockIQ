@@ -9,6 +9,7 @@ namespace DockIQ.UI
     public static class SpriteCatalog
     {
         private static Sprite[] _levelParcels;
+        private static Sprite[] _dockGates;
 
         public static Sprite Load(string resourcesPath)
         {
@@ -37,8 +38,10 @@ namespace DockIQ.UI
             ?? Load(rescue ? "Sprites/Robots/robot_rescue" : "Sprites/Robots/robot")
             ?? PlaceholderArt.RobotBody();
 
-        public static Sprite DockOrFallback() =>
-            Load("Sprites/Docks/dock") ?? PlaceholderArt.IsoDiamond();
+        public static Sprite DockOrFallback(int dockId = 1) =>
+            GateForDockId(dockId)
+            ?? Load("Sprites/Docks/dock")
+            ?? PlaceholderArt.IsoDiamond();
 
         /// <summary>
         /// Level-specific cargo sprite from Resources/UI/Parcels (Parcels_0 = level 1).
@@ -56,6 +59,22 @@ namespace DockIQ.UI
             return _levelParcels[index];
         }
 
+        /// <summary>
+        /// Dock gate sprite from Resources/UI/Gates (Gates_0 = dock 1 blue … Gates_3 = dock 4 yellow).
+        /// </summary>
+        public static Sprite GateForDockId(int dockId)
+        {
+            EnsureDockGates();
+            if (_dockGates == null || _dockGates.Length == 0)
+                return null;
+
+            int index = dockId - 1;
+            if (index < 0 || index >= _dockGates.Length)
+                return null;
+
+            return _dockGates[index];
+        }
+
         private static void EnsureLevelParcels()
         {
             if (_levelParcels != null)
@@ -68,11 +87,27 @@ namespace DockIQ.UI
                 return;
             }
 
-            Array.Sort(loaded, (a, b) => ParcelIndex(a).CompareTo(ParcelIndex(b)));
+            Array.Sort(loaded, (a, b) => SliceIndex(a).CompareTo(SliceIndex(b)));
             _levelParcels = loaded;
         }
 
-        private static int ParcelIndex(Sprite sprite)
+        private static void EnsureDockGates()
+        {
+            if (_dockGates != null)
+                return;
+
+            var loaded = Resources.LoadAll<Sprite>("UI/Gates");
+            if (loaded == null || loaded.Length == 0)
+            {
+                _dockGates = Array.Empty<Sprite>();
+                return;
+            }
+
+            Array.Sort(loaded, (a, b) => SliceIndex(a).CompareTo(SliceIndex(b)));
+            _dockGates = loaded;
+        }
+
+        private static int SliceIndex(Sprite sprite)
         {
             if (sprite == null || string.IsNullOrEmpty(sprite.name))
                 return int.MaxValue;
