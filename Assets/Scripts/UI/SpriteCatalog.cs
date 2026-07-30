@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace DockIQ.UI
@@ -7,6 +8,8 @@ namespace DockIQ.UI
     /// </summary>
     public static class SpriteCatalog
     {
+        private static Sprite[] _levelParcels;
+
         public static Sprite Load(string resourcesPath)
         {
             if (string.IsNullOrEmpty(resourcesPath))
@@ -36,5 +39,51 @@ namespace DockIQ.UI
 
         public static Sprite DockOrFallback() =>
             Load("Sprites/Docks/dock") ?? PlaceholderArt.IsoDiamond();
+
+        /// <summary>
+        /// Level-specific cargo sprite from Resources/UI/Parcels (Parcels_0 = level 1).
+        /// </summary>
+        public static Sprite ParcelForLevel(int levelId)
+        {
+            EnsureLevelParcels();
+            if (_levelParcels == null || _levelParcels.Length == 0)
+                return null;
+
+            int index = levelId - 1;
+            if (index < 0 || index >= _levelParcels.Length)
+                return null;
+
+            return _levelParcels[index];
+        }
+
+        private static void EnsureLevelParcels()
+        {
+            if (_levelParcels != null)
+                return;
+
+            var loaded = Resources.LoadAll<Sprite>("UI/Parcels");
+            if (loaded == null || loaded.Length == 0)
+            {
+                _levelParcels = Array.Empty<Sprite>();
+                return;
+            }
+
+            Array.Sort(loaded, (a, b) => ParcelIndex(a).CompareTo(ParcelIndex(b)));
+            _levelParcels = loaded;
+        }
+
+        private static int ParcelIndex(Sprite sprite)
+        {
+            if (sprite == null || string.IsNullOrEmpty(sprite.name))
+                return int.MaxValue;
+
+            string name = sprite.name;
+            int underscore = name.LastIndexOf('_');
+            if (underscore >= 0 && underscore + 1 < name.Length &&
+                int.TryParse(name.Substring(underscore + 1), out int index))
+                return index;
+
+            return int.MaxValue;
+        }
     }
 }

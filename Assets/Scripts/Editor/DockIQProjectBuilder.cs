@@ -352,6 +352,26 @@ namespace DockIQ.Editor
                 importer.textureType = TextureImporterType.Sprite;
                 importer.SaveAndReimport();
             }
+
+            EnsureParcelsResource();
+        }
+
+        private static void EnsureParcelsResource()
+        {
+            const string src = "Assets/UI/Parcels.png";
+            const string dst = "Assets/Resources/UI/Parcels.png";
+            if (!File.Exists(src))
+                return;
+
+            if (!AssetDatabase.IsValidFolder("Assets/Resources/UI"))
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+                    AssetDatabase.CreateFolder("Assets", "Resources");
+                AssetDatabase.CreateFolder("Assets/Resources", "UI");
+            }
+
+            if (!File.Exists(dst))
+                AssetDatabase.CopyAsset(src, dst);
         }
 
         private static void BuildSplashScene()

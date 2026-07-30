@@ -1,4 +1,5 @@
 using DockIQ.Board;
+using DockIQ.UI;
 using UnityEngine;
 
 namespace DockIQ.Gameplay
@@ -25,8 +26,10 @@ namespace DockIQ.Gameplay
         private Vector3 _to;
         private float _t;
         private bool _moving;
+        private bool _useParcelArt;
 
-        public void Init(CellCoord cell, Dir facing, bool isRescue, string callsign, Vector3 worldPos)
+        public void Init(CellCoord cell, Dir facing, bool isRescue, string callsign, Vector3 worldPos,
+            int levelId = 0)
         {
             Coord = cell;
             Facing = facing;
@@ -36,17 +39,32 @@ namespace DockIQ.Gameplay
             _from = _to = transform.position;
 
             _body = CreateChild("Body", IsoMath.DepthOrder(cell, 5));
-            _body.sprite = UI.SpriteCatalog.RobotOrFallback(isRescue);
-            _body.color = isRescue ? UI.PlaceholderArt.VipGold : UI.PlaceholderArt.RobotGrey;
-            transform.localScale = new Vector3(0.38f, 0.32f, 1f);
+
+            Sprite parcel = isRescue ? SpriteCatalog.ParcelForLevel(levelId) : null;
+            if (parcel != null)
+            {
+                _useParcelArt = true;
+                _body.sprite = parcel;
+                _body.color = Color.white;
+                // Parcel cells are ~150px at 100 PPU — keep them readable on the iso board.
+                transform.localScale = new Vector3(0.52f, 0.52f, 1f);
+            }
+            else
+            {
+                _useParcelArt = false;
+                _body.sprite = SpriteCatalog.RobotOrFallback(isRescue);
+                _body.color = isRescue ? PlaceholderArt.VipGold : PlaceholderArt.RobotGrey;
+                transform.localScale = new Vector3(0.38f, 0.32f, 1f);
+            }
+
             ApplyFacingVisual();
 
             if (isRescue)
             {
                 _outline = CreateChild("Outline", IsoMath.DepthOrder(cell, 4));
-                _outline.sprite = UI.PlaceholderArt.WhiteSquare();
-                _outline.color = new Color(1f, 0.9f, 0.2f, 0.5f);
-                _outline.transform.localScale = Vector3.one * 1.3f;
+                _outline.sprite = PlaceholderArt.WhiteSquare();
+                _outline.color = new Color(1f, 0.9f, 0.2f, _useParcelArt ? 0.35f : 0.5f);
+                _outline.transform.localScale = Vector3.one * (_useParcelArt ? 1.15f : 1.3f);
             }
         }
 
@@ -80,16 +98,25 @@ namespace DockIQ.Gameplay
 
             if (IsRescue && _outline != null)
             {
-                float pulse = 1.2f + Mathf.Sin(Time.time * 6f) * 0.08f;
+                float pulse = (_useParcelArt ? 1.1f : 1.2f) + Mathf.Sin(Time.time * 6f) * 0.08f;
                 _outline.transform.localScale = Vector3.one * pulse;
             }
         }
 
         private void ApplyFacingVisual()
         {
+            if (_body == null)
+                return;
+
+            // Cargo art stays upright; placeholder robots rotate with facing.
+            if (_useParcelArt)
+            {
+                _body.transform.localRotation = Quaternion.identity;
+                return;
+            }
+
             float z = IsoMath.DirToZDegrees(Facing);
-            if (_body != null)
-                _body.transform.localRotation = Quaternion.Euler(0f, 0f, z);
+            _body.transform.localRotation = Quaternion.Euler(0f, 0f, z);
         }
 
         private void ApplyDepth()

@@ -355,7 +355,8 @@ namespace DockIQ.Gameplay
             var go = new GameObject(rescue ? $"Robot_{callsign}" : $"Decoy_{callsign}");
             go.transform.SetParent(transform, false);
             var actor = go.AddComponent<RobotActor>();
-            actor.Init(cell, facing, rescue, callsign, _board.CellToWorld(cell, -0.1f));
+            actor.Init(cell, facing, rescue, callsign, _board.CellToWorld(cell, -0.1f),
+                rescue ? _level.Id : 0);
             _robots.Add(actor);
         }
 

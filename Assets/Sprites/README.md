@@ -15,11 +15,15 @@ View: **isometric 2D** tracks (optionally stacked floors). Tiny warehouse **robo
 | `obstacle.png` | Blocking scrap / fallen robot |
 | `liftable.png` | Liftable crate |
 
-## Robots (`Assets/Sprites/Parcels/` or `Robots/`)
+## Robots / Parcels
 | File | Use |
 |------|-----|
-| `parcel.png` / `robot.png` | Standard yard robot |
-| `parcel_vip.png` / `robot_rescue.png` | Highlighted rescue robot |
+| `Assets/UI/Parcels.png` | Authoring spritesheet (48 cargo icons, `Parcels_0`…`Parcels_47`) |
+| `Assets/Resources/UI/Parcels.png` | Runtime copy loaded per level for the rescue cargo |
+| `parcel.png` / `robot.png` | Fallback yard robot |
+| `parcel_vip.png` / `robot_rescue.png` | Fallback rescue highlight |
+
+Rescue cargo uses `SpriteCatalog.ParcelForLevel(levelId)` (`Parcels_0` = level 1). Decoys keep the grey placeholder robot.
 
 ## Docks / UI
 | File | Use |
