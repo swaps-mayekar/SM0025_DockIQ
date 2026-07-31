@@ -66,3 +66,20 @@ MonoBehaviour:
   - {fileID: 1046721849985281810, guid: 9b52f8468f8a746fc97081a649911871, type: 3}
   - {fileID: -8266205516308540991, guid: 9b52f8468f8a746fc97081a649911871, type: 3}
   - {fileID: 3913679822540184414, guid: 9b52f8468f8a746fc97081a649911871, type: 3}
+  _track: {fileID: 21300000, guid: ce268cea853504281b188829c5169ca4, type: 3}
+  _spawn: {fileID: 21300000, guid: 1712789994cf44310a67ada2278c942e, type: 3}
+  _directionArrow: {fileID: 21300000, guid: 9255f488036fb4222afec0dabc60af34, type: 3}
+  _pathWaypoint: {fileID: 21300000, guid: bab3bb87811654abda6eb442966dccfd, type: 3}
+  _switch: {fileID: 21300000, guid: 64754098ad1634eb48549cdd5b7e92b2, type: 3}
+  _rotator: {fileID: 21300000, guid: 7b5f49be719204b4eb080325636a83eb, type: 3}
+  _bridgeOpen: {fileID: 21300000, guid: d7835035dfd1f4b6e8a47b67da9bc02d, type: 3}
+  _bridgeClosed: {fileID: 21300000, guid: 9d0c0304fbb234e4c92e62170bc41c14, type: 3}
+  _lift: {fileID: 21300000, guid: f4a96dd550b9243bdaa6603b0cc676e5, type: 3}
+  _elevator: {fileID: 21300000, guid: 277ff7d31005f4dc3877f2f70d8faa94, type: 3}
+  _reflector: {fileID: 21300000, guid: 41e2a95cc45e2434e93072ff9a160e4f, type: 3}
+  _obstacle: {fileID: 21300000, guid: 511312511e6774e1391bc051938faf85, type: 3}
+  _liftableDown: {fileID: 21300000, guid: 599414cb3f2bc45c7a781da5591d3520, type: 3}
+  _liftableUp: {fileID: 21300000, guid: 24087359b5e444d71ad50c23d4d8a314, type: 3}
+  _robot: {fileID: 21300000, guid: f8696b3cbb1ae404c9cb8d106b2b9a1f, type: 3}
+  _robotRescue: {fileID: 21300000, guid: 2fecb9a5af99142f5b93f1c27ade994d, type: 3}
+  _selectionRing: {fileID: 21300000, guid: 6ec83145b41fc461e8147ea49be26106, type: 3}

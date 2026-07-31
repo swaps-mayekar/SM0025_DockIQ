@@ -2,38 +2,41 @@
 
 View: **isometric 2D** tracks (optionally stacked floors). Tiny warehouse **robots** drive on rails while you reconfigure the network.
 
-## Tracks (`Assets/Sprites/Belts/` or `Tracks/`)
+## Tracks (`Assets/Sprites/Belts/`)
 | File | Use |
 |------|-----|
-| `belt_straight.png` / `track.png` | Iso track diamond |
+| `belt_straight.png` | Iso track diamond |
+| `spawn_pad.png` | Spawn / launch pad |
+| `direction_arrow.png` | Travel-direction overlay |
+| `path_waypoint.png` | Movable-path preview marker |
+
+## Devices (`Assets/Sprites/Devices/`)
+| File | Use |
+|------|-----|
 | `switch.png` | Railway switch / turnout |
 | `rotator.png` | Rotating intersection / turntable |
-| `bridge_open.png` / `bridge_closed.png` | Drawbridge |
+| `bridge_open.png` / `bridge_closed.png` | Drawbridge states |
 | `lift.png` | Same-floor freight lift pad |
 | `elevator.png` | Cross-floor elevator |
 | `reflector.png` | Mirror (reverse travel) |
 | `obstacle.png` | Blocking scrap / fallen robot |
-| `liftable.png` | Liftable crate |
+| `liftable_down.png` / `liftable_up.png` | Liftable crate states |
 
-## Robots / Parcels
+## Robots (`Assets/Sprites/Robots/`)
 | File | Use |
 |------|-----|
-| `Assets/UI/Parcels.png` | Spritesheet (48 cargo icons, `Parcels_0`…`Parcels_47`) |
-| `Assets/UI/BoardArtCatalog.asset` | Direct sprite refs assigned on `LevelController` |
-| `parcel.png` / `robot.png` | Fallback yard robot |
-| `parcel_vip.png` / `robot_rescue.png` | Fallback rescue highlight |
+| `robot.png` | Decoy AGV |
+| `robot_rescue.png` | Rescue AGV fallback |
+| `selection_ring.png` | Rescue highlight ring |
 
-Rescue cargo uses `BoardArtCatalog.ParcelForLevel(levelId)` (`Parcels_0` = level 1). Decoys keep the grey placeholder robot.
-
-## Docks / UI
+## Cargo / docks (already wired)
 | File | Use |
 |------|-----|
-| `Assets/UI/Gates.png` | Spritesheet (4 dock gates, `Gates_0`…`Gates_3`) |
-| `Assets/UI/BoardArtCatalog.asset` | Direct sprite refs (`Gates_0` = dock 1 blue … `Gates_3` = dock 4 yellow) |
-| `dock.png` | Fallback shipping dock / gate |
-| `banner_panel.png` | Mission HUD |
+| `Assets/UI/Parcels.png` | 48 cargo icons (`Parcels_0`…`Parcels_47`) |
+| `Assets/UI/Gates.png` | 4 dock gates (`Gates_0`…`Gates_3`) |
+| `Assets/UI/BoardArtCatalog.asset` | All board sprites assigned on `LevelController` |
 
-Dock gates use `BoardArtCatalog.GateForDockId(dockId)`. Wire via **DockIQ → Ensure Board Art References**.
+Wire / refresh via **DockIQ → Import Gameplay Sprites** or **DockIQ → Ensure Board Art References**.
 
 ## Gameplay legend (level strings)
 
@@ -44,18 +47,9 @@ Dock gates use `BoardArtCatalog.GateForDockId(dockId)`. Wire via **DockIQ → En
 - `A`/`a` same-floor lift pair 0 · `C`/`c` lift pair 1
 - `E` cross-layer elevator pair 0 · `e` elevator pair 1
 
-**New gadgets**
+**Gadgets**
 - `M` fixed reflector (180° reverse)
 - `O` fixed obstacle (clash = fail)
 - `X` liftable obstacle (tap to raise; clash when down)
-
-**Movables** (authored in `LevelDef.Movables`, not ASCII)
-- Kind `R` = moving rotator (tap cycles path; after last slot, tap rotates mode, then wraps)
-- Kind `m` = moving reflector (tap cycles path)
-- Kind `O` = sliding obstacle (tap cycles path; clash = fail)
-- Path cells must be traversable track; piece starts at `StartIndex`
-
-**Layers**
-- `LevelDef.Layers` is `string[][]` — index 0 = ground, 1+ = upper decks (drawn with vertical offset)
 
 **48 levels** unlock in order via `GameConstants.TotalLevels`.

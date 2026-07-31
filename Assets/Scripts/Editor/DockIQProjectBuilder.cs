@@ -23,14 +23,45 @@ namespace DockIQ.Editor
         private static void BuildOnceAfterCompile()
         {
             if (Application.isBatchMode || SessionState.GetBool("DockIQ.ContentBuilt", false))
+            {
+                EditorApplication.delayCall += MaybeAutoImportGameplaySprites;
                 return;
+            }
 
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SceneFolder + "/1_MainMenu.unity") != null &&
                 AssetDatabase.LoadAssetAtPath<SceneAsset>(SceneFolder + "/2_Game.unity") != null)
+            {
+                EditorApplication.delayCall += MaybeAutoImportGameplaySprites;
                 return;
+            }
 
             SessionState.SetBool("DockIQ.ContentBuilt", true);
             EditorApplication.delayCall += Build;
+        }
+
+        private static void MaybeAutoImportGameplaySprites()
+        {
+            if (SessionState.GetBool("DockIQ.GameplaySpritesImported", false))
+                return;
+            if (!File.Exists("Assets/Sprites/Belts/belt_straight.png"))
+                return;
+
+            var catalog = AssetDatabase.LoadAssetAtPath<BoardArtCatalog>(BoardArtPath);
+            if (catalog != null)
+            {
+                var so = new SerializedObject(catalog);
+                var track = so.FindProperty("_track");
+                if (track != null && track.objectReferenceValue != null)
+                {
+                    SessionState.SetBool("DockIQ.GameplaySpritesImported", true);
+                    return;
+                }
+            }
+
+            SessionState.SetBool("DockIQ.GameplaySpritesImported", true);
+            ImportAndAssignGameplaySprites();
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SceneFolder + "/2_Game.unity") != null)
+                EnsureBoardArtInGameScene();
         }
 
         [MenuItem("DockIQ/Build Game Content")]
@@ -375,6 +406,7 @@ namespace DockIQ.Editor
                 "Assets/Sprites/Devices",
                 "Assets/Sprites/Parcels",
                 "Assets/Sprites/Docks",
+                "Assets/Sprites/Robots",
                 "Assets/Sprites/UI",
                 SceneFolder
             };
@@ -410,6 +442,36 @@ namespace DockIQ.Editor
         private const string ParcelsTexturePath = "Assets/UI/Parcels.png";
         private const string GatesTexturePath = "Assets/UI/Gates.png";
 
+        private static readonly (string path, string field, float ppu)[] GameplaySpriteBindings =
+        {
+            ("Assets/Sprites/Belts/belt_straight.png", "_track", 256f),
+            ("Assets/Sprites/Belts/spawn_pad.png", "_spawn", 256f),
+            ("Assets/Sprites/Belts/direction_arrow.png", "_directionArrow", 256f),
+            ("Assets/Sprites/Belts/path_waypoint.png", "_pathWaypoint", 256f),
+            ("Assets/Sprites/Devices/switch.png", "_switch", 256f),
+            ("Assets/Sprites/Devices/rotator.png", "_rotator", 256f),
+            ("Assets/Sprites/Devices/bridge_open.png", "_bridgeOpen", 256f),
+            ("Assets/Sprites/Devices/bridge_closed.png", "_bridgeClosed", 256f),
+            ("Assets/Sprites/Devices/lift.png", "_lift", 256f),
+            ("Assets/Sprites/Devices/elevator.png", "_elevator", 256f),
+            ("Assets/Sprites/Devices/reflector.png", "_reflector", 256f),
+            ("Assets/Sprites/Devices/obstacle.png", "_obstacle", 256f),
+            ("Assets/Sprites/Devices/liftable_down.png", "_liftableDown", 256f),
+            ("Assets/Sprites/Devices/liftable_up.png", "_liftableUp", 256f),
+            ("Assets/Sprites/Robots/robot.png", "_robot", 256f),
+            ("Assets/Sprites/Robots/robot_rescue.png", "_robotRescue", 256f),
+            ("Assets/Sprites/Robots/selection_ring.png", "_selectionRing", 256f),
+        };
+
+        [MenuItem("DockIQ/Import Gameplay Sprites")]
+        public static void ImportGameplaySpritesMenu()
+        {
+            EnsureFolders();
+            ImportAndAssignGameplaySprites();
+            EnsureBoardArtInGameScene();
+            Debug.Log("DOCKIQ_GAMEPLAY_SPRITES_READY");
+        }
+
         private static BoardArtCatalog EnsureBoardArtCatalog()
         {
             if (!AssetDatabase.IsValidFolder("Assets/UI"))
@@ -422,13 +484,113 @@ namespace DockIQ.Editor
                 AssetDatabase.CreateAsset(catalog, BoardArtPath);
             }
 
+            ImportAndAssignGameplaySprites(catalog);
+            return catalog;
+        }
+
+        private static void ImportAndAssignGameplaySprites(BoardArtCatalog existing = null)
+        {
+            for (int i = 0; i < GameplaySpriteBindings.Length; i++)
+                ConfigureSingleSprite(GameplaySpriteBindings[i].path, GameplaySpriteBindings[i].ppu);
+
+            AssetDatabase.Refresh();
+
+            var catalog = existing ?? AssetDatabase.LoadAssetAtPath<BoardArtCatalog>(BoardArtPath);
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<BoardArtCatalog>();
+                AssetDatabase.CreateAsset(catalog, BoardArtPath);
+            }
+
             var so = new SerializedObject(catalog);
             AssignSortedSprites(so.FindProperty("_parcels"), ParcelsTexturePath);
             AssignSortedSprites(so.FindProperty("_gates"), GatesTexturePath);
+
+            int assigned = 0;
+            for (int i = 0; i < GameplaySpriteBindings.Length; i++)
+            {
+                var binding = GameplaySpriteBindings[i];
+                var prop = so.FindProperty(binding.field);
+                if (prop == null)
+                    continue;
+
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(binding.path);
+                if (sprite == null)
+                    continue;
+
+                prop.objectReferenceValue = sprite;
+                assigned++;
+            }
+
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
-            return catalog;
+            Debug.Log($"DockIQ: Board art catalog updated ({assigned} gameplay sprites + parcels/gates).");
+        }
+
+        private static void ConfigureSingleSprite(string path, float pixelsPerUnit)
+        {
+            if (!File.Exists(path))
+                return;
+
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            }
+
+            if (importer == null)
+                return;
+
+            bool dirty = false;
+            if (importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                dirty = true;
+            }
+
+            if (importer.spriteImportMode != SpriteImportMode.Single)
+            {
+                importer.spriteImportMode = SpriteImportMode.Single;
+                dirty = true;
+            }
+
+            if (!Mathf.Approximately(importer.spritePixelsPerUnit, pixelsPerUnit))
+            {
+                importer.spritePixelsPerUnit = pixelsPerUnit;
+                dirty = true;
+            }
+
+            if (importer.mipmapEnabled)
+            {
+                importer.mipmapEnabled = false;
+                dirty = true;
+            }
+
+            if (importer.filterMode != FilterMode.Bilinear)
+            {
+                importer.filterMode = FilterMode.Bilinear;
+                dirty = true;
+            }
+
+            if (importer.alphaIsTransparency != true)
+            {
+                importer.alphaIsTransparency = true;
+                dirty = true;
+            }
+
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            if (settings.spriteMeshType != SpriteMeshType.FullRect)
+            {
+                settings.spriteMeshType = SpriteMeshType.FullRect;
+                importer.SetTextureSettings(settings);
+                dirty = true;
+            }
+
+            if (dirty)
+                importer.SaveAndReimport();
         }
 
         private static void AssignSortedSprites(SerializedProperty arrayProp, string texturePath)

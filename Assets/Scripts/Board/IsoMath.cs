@@ -2,10 +2,10 @@ using UnityEngine;
 
 namespace DockIQ.Board
 {
-    /// <summary>
-    /// Classic 2:1 isometric projection for 2D sprites (no 3D meshes).
-    /// Grid +X = East (screen down-right), +Y = North (screen up-right).
-    /// </summary>
+        /// <summary>
+        /// Classic 2:1 isometric projection for 2D sprites (no 3D meshes).
+        /// Grid +X = East (screen up-right), +Y = North (screen up-left).
+        /// </summary>
     public static class IsoMath
     {
         /// <summary>Horizontal span of one diamond tile.</summary>
@@ -57,6 +57,12 @@ namespace DockIQ.Board
             Vector2 v = DirToScreen(dir);
             return Mathf.Atan2(v.x, v.y) * Mathf.Rad2Deg;
         }
+
+        /// <summary>
+        /// Z rotation for direction-marker chevrons (art tip = +Y).
+        /// Tuned against board travel; differs from <see cref="DirToZDegrees"/> used by actors.
+        /// </summary>
+        public static float ArrowZDegrees(Dir dir) => DirToZDegrees(dir) - 90f;
 
         /// <summary>Painter sorting: lower on screen (smaller x+y) draws in front; higher floors on top.</summary>
         public static int DepthOrder(int x, int y, int floorLayer = 0, int spriteLayer = 0) =>

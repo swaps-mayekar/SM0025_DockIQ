@@ -27,6 +27,7 @@ namespace DockIQ.Gameplay
         private float _t;
         private bool _moving;
         private bool _useParcelArt;
+        private float _outlineBaseScale = 1.2f;
 
         public void Init(CellCoord cell, Dir facing, bool isRescue, string callsign, Vector3 worldPos,
             int levelId = 0)
@@ -52,9 +53,21 @@ namespace DockIQ.Gameplay
             else
             {
                 _useParcelArt = false;
-                _body.sprite = SpriteCatalog.RobotOrFallback(isRescue);
-                _body.color = isRescue ? PlaceholderArt.VipGold : PlaceholderArt.RobotGrey;
-                transform.localScale = new Vector3(0.38f, 0.32f, 1f);
+                Sprite robot = SpriteCatalog.RobotOrFallback(isRescue);
+                _body.sprite = robot;
+                bool painted = SpriteCatalog.IsProductionArt(robot);
+                _body.color = painted
+                    ? Color.white
+                    : (isRescue ? PlaceholderArt.VipGold : PlaceholderArt.RobotGrey);
+                if (painted)
+                {
+                    float s = SpriteCatalog.FitWidthScale(robot, 0.55f);
+                    transform.localScale = new Vector3(s, s, 1f);
+                }
+                else
+                {
+                    transform.localScale = new Vector3(0.38f, 0.32f, 1f);
+                }
             }
 
             ApplyFacingVisual();
@@ -62,9 +75,24 @@ namespace DockIQ.Gameplay
             if (isRescue)
             {
                 _outline = CreateChild("Outline", IsoMath.DepthOrder(cell, 4));
-                _outline.sprite = PlaceholderArt.WhiteSquare();
-                _outline.color = new Color(1f, 0.9f, 0.2f, _useParcelArt ? 0.35f : 0.5f);
-                _outline.transform.localScale = Vector3.one * (_useParcelArt ? 1.15f : 1.3f);
+                Sprite ring = SpriteCatalog.SelectionRingOrFallback();
+                _outline.sprite = ring;
+                bool ringArt = SpriteCatalog.IsProductionArt(ring);
+                _outline.color = ringArt
+                    ? new Color(1f, 1f, 1f, _useParcelArt ? 0.7f : 0.85f)
+                    : new Color(1f, 0.9f, 0.2f, _useParcelArt ? 0.35f : 0.5f);
+                if (ringArt)
+                {
+                    float ringScale = SpriteCatalog.FitWidthScale(ring, _useParcelArt ? 0.85f : 0.7f)
+                                     / Mathf.Max(0.01f, transform.localScale.x);
+                    _outlineBaseScale = ringScale;
+                    _outline.transform.localScale = Vector3.one * ringScale;
+                }
+                else
+                {
+                    _outlineBaseScale = _useParcelArt ? 1.15f : 1.3f;
+                    _outline.transform.localScale = Vector3.one * _outlineBaseScale;
+                }
             }
         }
 
@@ -98,7 +126,7 @@ namespace DockIQ.Gameplay
 
             if (IsRescue && _outline != null)
             {
-                float pulse = (_useParcelArt ? 1.1f : 1.2f) + Mathf.Sin(Time.time * 6f) * 0.08f;
+                float pulse = _outlineBaseScale * (1f + Mathf.Sin(Time.time * 6f) * 0.06f);
                 _outline.transform.localScale = Vector3.one * pulse;
             }
         }
