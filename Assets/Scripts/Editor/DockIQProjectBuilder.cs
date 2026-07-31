@@ -261,12 +261,57 @@ namespace DockIQ.Editor
             return null;
         }
 
+        [MenuItem("DockIQ/Ensure Board Art References")]
+        public static void EnsureBoardArtInGameScene()
+        {
+            const string scenePath = SceneFolder + "/2_Game.unity";
+            var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
+            if (sceneAsset == null)
+            {
+                Debug.LogError($"DockIQ: Missing scene {scenePath}. Run Build Game Content first.");
+                return;
+            }
+
+            var catalog = EnsureBoardArtCatalog();
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            var controller = UnityEngine.Object.FindFirstObjectByType<LevelController>();
+            if (controller == null)
+            {
+                Debug.LogError("DockIQ: LevelController not found in game scene.");
+                return;
+            }
+
+            var so = new SerializedObject(controller);
+            var artProp = so.FindProperty("_boardArt");
+            if (artProp == null)
+            {
+                Debug.LogError("DockIQ: LevelController is missing _boardArt field.");
+                return;
+            }
+
+            if (artProp.objectReferenceValue == catalog)
+            {
+                Debug.Log("DockIQ: Board art already assigned — refreshed sprite arrays on catalog.");
+            }
+            else
+            {
+                artProp.objectReferenceValue = catalog;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                Debug.Log("DockIQ: Board art catalog assigned to LevelController.");
+            }
+
+            RemoveLegacyUiResources();
+        }
+
         private static void BuildInternal(bool overwriteExistingScenes)
         {
             try
             {
                 EnsureFolders();
                 EnsureLogoResource();
+                EnsureBoardArtCatalog();
                 EnsureScene($"{SceneFolder}/0_SplashScene.unity", BuildSplashScene, overwriteExistingScenes);
                 EnsureScene($"{SceneFolder}/1_MainMenu.unity", BuildMenuScene, overwriteExistingScenes);
                 EnsureScene($"{SceneFolder}/2_Game.unity", BuildGameScene, overwriteExistingScenes);
@@ -280,6 +325,13 @@ namespace DockIQ.Editor
                 if (!overwriteExistingScenes &&
                     AssetDatabase.LoadAssetAtPath<SceneAsset>($"{SceneFolder}/1_MainMenu.unity") != null)
                     EnsureMainMenuModes();
+
+                // Non-destructive: wire board art references on existing game scene.
+                if (!overwriteExistingScenes &&
+                    AssetDatabase.LoadAssetAtPath<SceneAsset>($"{SceneFolder}/2_Game.unity") != null)
+                    EnsureBoardArtInGameScene();
+                else
+                    RemoveLegacyUiResources();
 
                 ConfigureBuildSettings();
                 AssetDatabase.SaveAssets();
@@ -352,26 +404,104 @@ namespace DockIQ.Editor
                 importer.textureType = TextureImporterType.Sprite;
                 importer.SaveAndReimport();
             }
-
-            EnsureParcelsResource();
         }
 
-        private static void EnsureParcelsResource()
-        {
-            const string src = "Assets/UI/Parcels.png";
-            const string dst = "Assets/Resources/UI/Parcels.png";
-            if (!File.Exists(src))
-                return;
+        private const string BoardArtPath = "Assets/UI/BoardArtCatalog.asset";
+        private const string ParcelsTexturePath = "Assets/UI/Parcels.png";
+        private const string GatesTexturePath = "Assets/UI/Gates.png";
 
-            if (!AssetDatabase.IsValidFolder("Assets/Resources/UI"))
+        private static BoardArtCatalog EnsureBoardArtCatalog()
+        {
+            if (!AssetDatabase.IsValidFolder("Assets/UI"))
+                AssetDatabase.CreateFolder("Assets", "UI");
+
+            var catalog = AssetDatabase.LoadAssetAtPath<BoardArtCatalog>(BoardArtPath);
+            if (catalog == null)
             {
-                if (!AssetDatabase.IsValidFolder("Assets/Resources"))
-                    AssetDatabase.CreateFolder("Assets", "Resources");
-                AssetDatabase.CreateFolder("Assets/Resources", "UI");
+                catalog = ScriptableObject.CreateInstance<BoardArtCatalog>();
+                AssetDatabase.CreateAsset(catalog, BoardArtPath);
             }
 
-            if (!File.Exists(dst))
-                AssetDatabase.CopyAsset(src, dst);
+            var so = new SerializedObject(catalog);
+            AssignSortedSprites(so.FindProperty("_parcels"), ParcelsTexturePath);
+            AssignSortedSprites(so.FindProperty("_gates"), GatesTexturePath);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets();
+            return catalog;
+        }
+
+        private static void AssignSortedSprites(SerializedProperty arrayProp, string texturePath)
+        {
+            if (arrayProp == null)
+                return;
+
+            var sprites = LoadSortedSprites(texturePath);
+            arrayProp.arraySize = sprites.Length;
+            for (int i = 0; i < sprites.Length; i++)
+                arrayProp.GetArrayElementAtIndex(i).objectReferenceValue = sprites[i];
+        }
+
+        private static Sprite[] LoadSortedSprites(string texturePath)
+        {
+            if (!File.Exists(texturePath))
+                return Array.Empty<Sprite>();
+
+            var assets = AssetDatabase.LoadAllAssetsAtPath(texturePath);
+            var sprites = new List<Sprite>(assets.Length);
+            for (int i = 0; i < assets.Length; i++)
+            {
+                if (assets[i] is Sprite sprite)
+                    sprites.Add(sprite);
+            }
+
+            sprites.Sort((a, b) => SliceIndex(a.name).CompareTo(SliceIndex(b.name)));
+            return sprites.ToArray();
+        }
+
+        private static int SliceIndex(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+                return int.MaxValue;
+
+            int underscore = name.LastIndexOf('_');
+            if (underscore >= 0 && underscore + 1 < name.Length &&
+                int.TryParse(name.Substring(underscore + 1), out int index))
+                return index;
+
+            return int.MaxValue;
+        }
+
+        private static void RemoveLegacyUiResources()
+        {
+            string[] legacy =
+            {
+                "Assets/Resources/UI/Parcels.png",
+                "Assets/Resources/UI/Gates.png"
+            };
+
+            bool removed = false;
+            for (int i = 0; i < legacy.Length; i++)
+            {
+                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(legacy[i]) == null && !File.Exists(legacy[i]))
+                    continue;
+
+                if (AssetDatabase.DeleteAsset(legacy[i]))
+                    removed = true;
+            }
+
+            if (AssetDatabase.IsValidFolder("Assets/Resources/UI"))
+            {
+                string[] remaining = AssetDatabase.FindAssets(string.Empty, new[] { "Assets/Resources/UI" });
+                if (remaining == null || remaining.Length == 0)
+                {
+                    AssetDatabase.DeleteAsset("Assets/Resources/UI");
+                    removed = true;
+                }
+            }
+
+            if (removed)
+                Debug.Log("DockIQ: Removed legacy Resources/UI parcel and gate copies.");
         }
 
         private static void BuildSplashScene()
@@ -696,6 +826,11 @@ namespace DockIQ.Editor
             hudSo.ApplyModifiedPropertiesWithoutUndo();
 
             CreateAndWireTutorialUi(safe, hud);
+
+            var boardArt = EnsureBoardArtCatalog();
+            var controllerSo = new SerializedObject(controller);
+            controllerSo.FindProperty("_boardArt").objectReferenceValue = boardArt;
+            controllerSo.ApplyModifiedPropertiesWithoutUndo();
 
             var sceneSo = new SerializedObject(gameRoot.GetComponent<GameSceneController>());
             sceneSo.FindProperty("_hud").objectReferenceValue = hud;

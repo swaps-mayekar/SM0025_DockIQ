@@ -11,6 +11,8 @@ namespace DockIQ.Gameplay
 {
     public sealed class LevelController : MonoBehaviour
     {
+        [SerializeField] private BoardArtCatalog _boardArt;
+
         private LevelDef _level;
         private GridBoard _board;
         private BoardView _view;
@@ -38,6 +40,8 @@ namespace DockIQ.Gameplay
             _tickTimer = level.TickSeconds;
             _cam = Camera.main;
             _pendingTips.Clear();
+
+            SpriteCatalog.Bind(_boardArt);
 
             _board = new GridBoard();
             _board.Build(level.ResolveLayers(), level.Movables, GameConstants.DefaultCellSize);

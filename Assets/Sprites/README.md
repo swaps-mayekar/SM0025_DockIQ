@@ -18,22 +18,22 @@ View: **isometric 2D** tracks (optionally stacked floors). Tiny warehouse **robo
 ## Robots / Parcels
 | File | Use |
 |------|-----|
-| `Assets/UI/Parcels.png` | Authoring spritesheet (48 cargo icons, `Parcels_0`…`Parcels_47`) |
-| `Assets/Resources/UI/Parcels.png` | Runtime copy loaded per level for the rescue cargo |
+| `Assets/UI/Parcels.png` | Spritesheet (48 cargo icons, `Parcels_0`…`Parcels_47`) |
+| `Assets/UI/BoardArtCatalog.asset` | Direct sprite refs assigned on `LevelController` |
 | `parcel.png` / `robot.png` | Fallback yard robot |
 | `parcel_vip.png` / `robot_rescue.png` | Fallback rescue highlight |
 
-Rescue cargo uses `SpriteCatalog.ParcelForLevel(levelId)` (`Parcels_0` = level 1). Decoys keep the grey placeholder robot.
+Rescue cargo uses `BoardArtCatalog.ParcelForLevel(levelId)` (`Parcels_0` = level 1). Decoys keep the grey placeholder robot.
 
 ## Docks / UI
 | File | Use |
 |------|-----|
-| `Assets/UI/Gates.png` | Authoring spritesheet (4 dock gates, `Gates_0`…`Gates_3`) |
-| `Assets/Resources/UI/Gates.png` | Runtime copy loaded per dock id |
+| `Assets/UI/Gates.png` | Spritesheet (4 dock gates, `Gates_0`…`Gates_3`) |
+| `Assets/UI/BoardArtCatalog.asset` | Direct sprite refs (`Gates_0` = dock 1 blue … `Gates_3` = dock 4 yellow) |
 | `dock.png` | Fallback shipping dock / gate |
 | `banner_panel.png` | Mission HUD |
 
-Dock gates use `SpriteCatalog.GateForDockId(dockId)` (`Gates_0` = dock 1 blue, `Gates_1` = dock 2 green, `Gates_2` = dock 3 red, `Gates_3` = dock 4 yellow).
+Dock gates use `BoardArtCatalog.GateForDockId(dockId)`. Wire via **DockIQ → Ensure Board Art References**.
 
 ## Gameplay legend (level strings)
 

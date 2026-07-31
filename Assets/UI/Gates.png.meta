@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: e48194d5dbd5d4274b9bef9ad0fe292e
+guid: 9b52f8468f8a746fc97081a649911871
 TextureImporter:
   internalIDToNameTable:
   - first:
@@ -194,10 +194,10 @@ TextureImporter:
       name: Gates_3
       rect:
         serializedVersion: 2
-        x: 511
-        y: 44
-        width: 468
-        height: 382
+        x: 671
+        y: 2
+        width: 583
+        height: 578
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -216,10 +216,10 @@ TextureImporter:
       name: Gates_0
       rect:
         serializedVersion: 2
-        x: 49
-        y: 588
-        width: 447
-        height: 394
+        x: 41
+        y: 581
+        width: 586
+        height: 561
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -238,10 +238,10 @@ TextureImporter:
       name: Gates_1
       rect:
         serializedVersion: 2
-        x: 508
-        y: 588
-        width: 464
-        height: 393
+        x: 669
+        y: 578
+        width: 585
+        height: 562
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -261,9 +261,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 41
-        y: 48
-        width: 454
-        height: 374
+        y: 0
+        width: 586
+        height: 581
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -292,7 +292,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries:
       - key: SpriteEditor.SliceSettings
-        value: '{"sliceOnImport":false,"gridCellCount":{"x":2.0,"y":2.0},"gridSpriteSize":{"x":512.0,"y":512.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":2.0,"y":2.0},"gridSpriteSize":{"x":627.0,"y":627.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       Gates_0: 2179673419495629613
       Gates_1: 1046721849985281810
