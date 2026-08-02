@@ -59,10 +59,11 @@ namespace DockIQ.Board
         }
 
         /// <summary>
-        /// Z rotation for direction-marker chevrons (art tip = +Y).
-        /// Tuned against board travel; differs from <see cref="DirToZDegrees"/> used by actors.
+        /// Z rotation for direction markers. Art_assets chevrons are authored facing East
+        /// (screen up-right), so rotate relative to that native facing.
         /// </summary>
-        public static float ArrowZDegrees(Dir dir) => DirToZDegrees(dir) - 90f;
+        public static float ArrowZDegrees(Dir dir) =>
+            DirToZDegrees(dir) - DirToZDegrees(Dir.East);
 
         /// <summary>Painter sorting: lower on screen (smaller x+y) draws in front; higher floors on top.</summary>
         public static int DepthOrder(int x, int y, int floorLayer = 0, int spriteLayer = 0) =>

@@ -129,7 +129,7 @@ TextureImporter:
         y: 621
         width: 156
         height: 94
-      alignment: 0
+      alignment: 9
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
@@ -144,14 +144,14 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Art_assets_3
+      name: art_switch
       rect:
         serializedVersion: 2
-        x: 522
-        y: 8
-        width: 502
-        height: 710
-      alignment: 0
+        x: 725
+        y: 608
+        width: 156
+        height: 97
+      alignment: 9
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
@@ -166,37 +166,15 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: art_belt_straight_upper_0
-      rect:
-        serializedVersion: 2
-        x: 191
-        y: 620
-        width: 156
-        height: 96
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 55fa2ab125bf54d169931aca2ce3698a
-      internalID: 373773759
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: art_belt_straight_upper_1
+      name: art_belt_straight_upper
       rect:
         serializedVersion: 2
         x: 356
         y: 621
         width: 157
         height: 94
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -205,6 +183,446 @@ TextureImporter:
       bones: []
       spriteID: c249a1283e6034ed1b1bf4263f5fd2a7
       internalID: 2023688201
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_rotator_straight
+      rect:
+        serializedVersion: 2
+        x: 884
+        y: 608
+        width: 155
+        height: 96
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 96813f358d21c47b5928364c1cba42a9
+      internalID: -1207147955
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_rotator_left
+      rect:
+        serializedVersion: 2
+        x: 1042
+        y: 608
+        width: 154
+        height: 97
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8b543ea5f400541679b437763b89df5e
+      internalID: 621563839
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_rotator_right
+      rect:
+        serializedVersion: 2
+        x: 1200
+        y: 608
+        width: 154
+        height: 97
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 96b86f810bbef44859b051953b766971
+      internalID: 1686918679
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_spawn_pad
+      rect:
+        serializedVersion: 2
+        x: 356
+        y: 506
+        width: 156
+        height: 92
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4f946fea352844903878b495aebb215a
+      internalID: -1056325438
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_path_waypoint
+      rect:
+        serializedVersion: 2
+        x: 521
+        y: 506
+        width: 157
+        height: 91
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6d03a4597bf70497088d19f1dd4926d1
+      internalID: -1618744052
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_direction_arrow
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 395
+        width: 156
+        height: 91
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e5d0aca4b640c4dc98059d4ffda0babe
+      internalID: -1680561889
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_board_tile_void
+      rect:
+        serializedVersion: 2
+        x: 354
+        y: 394
+        width: 161
+        height: 91
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2c575688003c147bab06234e836fafea
+      internalID: -585569616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_selection_ring
+      rect:
+        serializedVersion: 2
+        x: 521
+        y: 395
+        width: 157
+        height: 90
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9dde5fcdefdb6494cb9ff06ceefefb13
+      internalID: 2008570953
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_robot_decoy
+      rect:
+        serializedVersion: 2
+        x: 27
+        y: 45
+        width: 153
+        height: 111
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f9fffeca65c404880a444e21869c5a4e
+      internalID: -627779515
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_robot_SE
+      rect:
+        serializedVersion: 2
+        x: 196
+        y: 196
+        width: 151
+        height: 111
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d70cdde15aa4848d9885ac24858f8449
+      internalID: -98147111
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_robot_NW
+      rect:
+        serializedVersion: 2
+        x: 364
+        y: 196
+        width: 151
+        height: 111
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 919c18ebbacc6431eb5e5c37f9ac5abd
+      internalID: 1240851607
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_robot_rescue_fallback
+      rect:
+        serializedVersion: 2
+        x: 194
+        y: 42
+        width: 156
+        height: 116
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 61350fce4da53434faa9a78c4b6b636b
+      internalID: 2084345661
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_bridge_closed
+      rect:
+        serializedVersion: 2
+        x: 726
+        y: 416
+        width: 153
+        height: 150
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e413dbd0d588f4e60a95b4f09bab8931
+      internalID: -148576646
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_bridge_open
+      rect:
+        serializedVersion: 2
+        x: 885
+        y: 416
+        width: 154
+        height: 149
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d0c1c3fa179c64a6a86e9a404c3eaeb7
+      internalID: -1484556914
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_lift
+      rect:
+        serializedVersion: 2
+        x: 1043
+        y: 413
+        width: 155
+        height: 161
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e9e4d5d076f8c439ca59e495befc827a
+      internalID: -1790111322
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_elevator
+      rect:
+        serializedVersion: 2
+        x: 1202
+        y: 417
+        width: 152
+        height: 158
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 07ee1efda758c4137914b8cfe14d225d
+      internalID: 1625279567
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_reflector
+      rect:
+        serializedVersion: 2
+        x: 727
+        y: 219
+        width: 154
+        height: 129
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 14f9a42fdb5ca4506b99cb5a376b82d5
+      internalID: -943101635
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_obstacle
+      rect:
+        serializedVersion: 2
+        x: 885
+        y: 221
+        width: 152
+        height: 127
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 778ba851d21e142da8850b2f273813b3
+      internalID: -97743642
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_liftable_down
+      rect:
+        serializedVersion: 2
+        x: 1044
+        y: 222
+        width: 152
+        height: 158
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d29eb5dcead8d410283a2bdf7a03f164
+      internalID: -1995727422
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: art_liftable_up
+      rect:
+        serializedVersion: 2
+        x: 1201
+        y: 222
+        width: 154
+        height: 163
+      alignment: 9
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d332da87cf0b8464d91c6c23fdf62547
+      internalID: -1774045485
       vertices: []
       indices: 
       edges: []
@@ -223,11 +641,30 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Art_assets_1: -5249688345496709156
-      Art_assets_3: -7041902337959529205
       art_belt_straight: 121040040812157351
+      art_belt_straight_upper: 2023688201
       art_belt_straight_upper_0: 3390666605043140563
-      art_belt_straight_upper_1: 2023688201
+      art_board_tile_void: -5249688345496709156
+      art_bridge_closed: -148576646
+      art_bridge_open: -1484556914
+      art_direction_arrow: -1680561889
+      art_elevator: 1625279567
+      art_lift: -1790111322
+      art_liftable_down: -1995727422
+      art_liftable_up: -1774045485
+      art_obstacle: -97743642
+      art_path_waypoint: -1618744052
+      art_reflector: -943101635
+      art_robot_NW: 1240851607
+      art_robot_SE: -98147111
+      art_robot_decoy: -627779515
+      art_robot_rescue_fallback: 2084345661
+      art_rotator_left: 621563839
+      art_rotator_right: 1686918679
+      art_rotator_straight: -1207147955
+      art_selection_ring: 2008570953
+      art_spawn_pad: -1056325438
+      art_switch: -7041902337959529205
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

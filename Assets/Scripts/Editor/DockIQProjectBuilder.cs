@@ -41,24 +41,14 @@ namespace DockIQ.Editor
 
         private static void MaybeAutoImportGameplaySprites()
         {
-            if (SessionState.GetBool("DockIQ.GameplaySpritesImported", false))
-                return;
-            if (!File.Exists("Assets/Sprites/Belts/belt_straight.png"))
+            if (!File.Exists(ArtAssetsPath))
                 return;
 
-            var catalog = AssetDatabase.LoadAssetAtPath<BoardArtCatalog>(BoardArtPath);
-            if (catalog != null)
-            {
-                var so = new SerializedObject(catalog);
-                var track = so.FindProperty("_track");
-                if (track != null && track.objectReferenceValue != null)
-                {
-                    SessionState.SetBool("DockIQ.GameplaySpritesImported", true);
-                    return;
-                }
-            }
+            // Re-bind whenever Art_assets exists so catalog stays on the production sheet.
+            if (SessionState.GetBool("DockIQ.ArtAssetsBound", false))
+                return;
 
-            SessionState.SetBool("DockIQ.GameplaySpritesImported", true);
+            SessionState.SetBool("DockIQ.ArtAssetsBound", true);
             ImportAndAssignGameplaySprites();
             if (AssetDatabase.LoadAssetAtPath<SceneAsset>(SceneFolder + "/2_Game.unity") != null)
                 EnsureBoardArtInGameScene();
@@ -441,26 +431,28 @@ namespace DockIQ.Editor
         private const string BoardArtPath = "Assets/UI/BoardArtCatalog.asset";
         private const string ParcelsTexturePath = "Assets/UI/Parcels.png";
         private const string GatesTexturePath = "Assets/UI/Gates.png";
+        private const string ArtAssetsPath = "Assets/UI/Art_assets.png";
 
-        private static readonly (string path, string field, float ppu)[] GameplaySpriteBindings =
+        /// <summary>Slice name inside Art_assets.png → BoardArtCatalog field.</summary>
+        private static readonly (string sliceName, string field)[] ArtAssetBindings =
         {
-            ("Assets/Sprites/Belts/belt_straight.png", "_track", 256f),
-            ("Assets/Sprites/Belts/spawn_pad.png", "_spawn", 256f),
-            ("Assets/Sprites/Belts/direction_arrow.png", "_directionArrow", 256f),
-            ("Assets/Sprites/Belts/path_waypoint.png", "_pathWaypoint", 256f),
-            ("Assets/Sprites/Devices/switch.png", "_switch", 256f),
-            ("Assets/Sprites/Devices/rotator.png", "_rotator", 256f),
-            ("Assets/Sprites/Devices/bridge_open.png", "_bridgeOpen", 256f),
-            ("Assets/Sprites/Devices/bridge_closed.png", "_bridgeClosed", 256f),
-            ("Assets/Sprites/Devices/lift.png", "_lift", 256f),
-            ("Assets/Sprites/Devices/elevator.png", "_elevator", 256f),
-            ("Assets/Sprites/Devices/reflector.png", "_reflector", 256f),
-            ("Assets/Sprites/Devices/obstacle.png", "_obstacle", 256f),
-            ("Assets/Sprites/Devices/liftable_down.png", "_liftableDown", 256f),
-            ("Assets/Sprites/Devices/liftable_up.png", "_liftableUp", 256f),
-            ("Assets/Sprites/Robots/robot.png", "_robot", 256f),
-            ("Assets/Sprites/Robots/robot_rescue.png", "_robotRescue", 256f),
-            ("Assets/Sprites/Robots/selection_ring.png", "_selectionRing", 256f),
+            ("art_belt_straight", "_track"),
+            ("art_spawn_pad", "_spawn"),
+            ("art_direction_arrow", "_directionArrow"),
+            ("art_path_waypoint", "_pathWaypoint"),
+            ("art_switch", "_switch"),
+            ("art_rotator_straight", "_rotator"),
+            ("art_bridge_open", "_bridgeOpen"),
+            ("art_bridge_closed", "_bridgeClosed"),
+            ("art_lift", "_lift"),
+            ("art_elevator", "_elevator"),
+            ("art_reflector", "_reflector"),
+            ("art_obstacle", "_obstacle"),
+            ("art_liftable_down", "_liftableDown"),
+            ("art_liftable_up", "_liftableUp"),
+            ("art_robot_decoy", "_robot"),
+            ("art_robot_rescue_fallback", "_robotRescue"),
+            ("art_selection_ring", "_selectionRing"),
         };
 
         [MenuItem("DockIQ/Import Gameplay Sprites")]
@@ -490,10 +482,7 @@ namespace DockIQ.Editor
 
         private static void ImportAndAssignGameplaySprites(BoardArtCatalog existing = null)
         {
-            for (int i = 0; i < GameplaySpriteBindings.Length; i++)
-                ConfigureSingleSprite(GameplaySpriteBindings[i].path, GameplaySpriteBindings[i].ppu);
-
-            AssetDatabase.Refresh();
+            ConfigureArtAssetsSheet();
 
             var catalog = existing ?? AssetDatabase.LoadAssetAtPath<BoardArtCatalog>(BoardArtPath);
             if (catalog == null)
@@ -506,17 +495,19 @@ namespace DockIQ.Editor
             AssignSortedSprites(so.FindProperty("_parcels"), ParcelsTexturePath);
             AssignSortedSprites(so.FindProperty("_gates"), GatesTexturePath);
 
+            var byName = LoadSpritesByName(ArtAssetsPath);
             int assigned = 0;
-            for (int i = 0; i < GameplaySpriteBindings.Length; i++)
+            for (int i = 0; i < ArtAssetBindings.Length; i++)
             {
-                var binding = GameplaySpriteBindings[i];
+                var binding = ArtAssetBindings[i];
                 var prop = so.FindProperty(binding.field);
                 if (prop == null)
                     continue;
-
-                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(binding.path);
-                if (sprite == null)
+                if (!byName.TryGetValue(binding.sliceName, out Sprite sprite) || sprite == null)
+                {
+                    Debug.LogWarning($"DockIQ: Missing Art_assets slice '{binding.sliceName}'.");
                     continue;
+                }
 
                 prop.objectReferenceValue = sprite;
                 assigned++;
@@ -525,7 +516,96 @@ namespace DockIQ.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
-            Debug.Log($"DockIQ: Board art catalog updated ({assigned} gameplay sprites + parcels/gates).");
+            Debug.Log($"DockIQ: Board art catalog updated ({assigned} Art_assets slices + parcels/gates).");
+        }
+
+        private static void ConfigureArtAssetsSheet()
+        {
+            if (!File.Exists(ArtAssetsPath))
+            {
+                Debug.LogError($"DockIQ: Missing {ArtAssetsPath}");
+                return;
+            }
+
+            var importer = AssetImporter.GetAtPath(ArtAssetsPath) as TextureImporter;
+            if (importer == null)
+                return;
+
+            bool dirty = false;
+            if (importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                dirty = true;
+            }
+
+            if (importer.spriteImportMode != SpriteImportMode.Multiple)
+            {
+                importer.spriteImportMode = SpriteImportMode.Multiple;
+                dirty = true;
+            }
+
+            if (!Mathf.Approximately(importer.spritePixelsPerUnit, 100f))
+            {
+                importer.spritePixelsPerUnit = 100f;
+                dirty = true;
+            }
+
+            if (importer.mipmapEnabled)
+            {
+                importer.mipmapEnabled = false;
+                dirty = true;
+            }
+
+            if (importer.filterMode != FilterMode.Bilinear)
+            {
+                importer.filterMode = FilterMode.Bilinear;
+                dirty = true;
+            }
+
+            if (!importer.alphaIsTransparency)
+            {
+                importer.alphaIsTransparency = true;
+                dirty = true;
+            }
+
+            // Center pivots on every slice (sheet was authored with several at 0,0).
+            var sheet = new SpriteMetaData[importer.spritesheet.Length];
+            for (int i = 0; i < importer.spritesheet.Length; i++)
+            {
+                var md = importer.spritesheet[i];
+                if (md.alignment != (int)SpriteAlignment.Center ||
+                    !Mathf.Approximately(md.pivot.x, 0.5f) ||
+                    !Mathf.Approximately(md.pivot.y, 0.5f))
+                {
+                    md.alignment = (int)SpriteAlignment.Center;
+                    md.pivot = new Vector2(0.5f, 0.5f);
+                    dirty = true;
+                }
+
+                sheet[i] = md;
+            }
+
+            if (dirty)
+            {
+                importer.spritesheet = sheet;
+                importer.SaveAndReimport();
+            }
+        }
+
+        private static Dictionary<string, Sprite> LoadSpritesByName(string texturePath)
+        {
+            var map = new Dictionary<string, Sprite>();
+            if (!File.Exists(texturePath))
+                return map;
+
+            var assets = AssetDatabase.LoadAllAssetsAtPath(texturePath);
+            for (int i = 0; i < assets.Length; i++)
+            {
+                if (assets[i] is Sprite sprite && !string.IsNullOrEmpty(sprite.name))
+                    map[sprite.name] = sprite;
+            }
+
+            return map;
         }
 
         private static void ConfigureSingleSprite(string path, float pixelsPerUnit)
