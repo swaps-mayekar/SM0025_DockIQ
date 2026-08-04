@@ -203,7 +203,7 @@ namespace DockIQ.Levels
                     ".S>+>B>R...",
                     "...v.......",
                     "...X>M>1...",
-                    "...+>>>>>2.")
+                    "...R>>>>>2.")
             });
 
             add(new LevelDef

@@ -64,6 +64,38 @@ def parse_catalog():
     return levels
 
 
+ROUTE_GLYPHS = set("^>v<+RBAaCcEeMXOSs123456789")
+
+
+def apply_opening_runway(level, count=5):
+    """Mirror LevelDef.EnsureOpeningRunway."""
+    sx, sy, sl = level["start"]
+    expanded = []
+    for layer, rows in enumerate(level["layers"]):
+        rescue_row = len(rows) - 1 - sy
+        out = []
+        for row_index, row in enumerate(rows):
+            insert_at = max(0, min(sx + 1, len(row)))
+            crosses = (
+                0 < insert_at < len(row)
+                and row[insert_at - 1] in ROUTE_GLYPHS
+                and row[insert_at] in ROUTE_GLYPHS
+            )
+            gap = ">" * count if (
+                (layer == sl and row_index == rescue_row) or crosses
+            ) else "." * count
+            out.append(row[:insert_at] + gap + row[insert_at:])
+        expanded.append(out)
+    level["layers"] = expanded
+
+    for movable in level["movables"]:
+        movable["path"] = [
+            (x + count if x > sx else x, y, layer)
+            for x, y, layer in movable["path"]
+        ]
+    level["max_ticks"] += count
+
+
 class Cell:
     __slots__ = ("typ", "facing", "dock", "lift_target", "elev_target",
                  "switch_face", "rot_mode", "bridge_open", "liftable_up", "movable_id")
@@ -99,10 +131,10 @@ def build_base(level):
                     continue
                 if ch in "^>v<":
                     c.typ = "track"
-                    c.facing = {"^": N, ">": E, "v": S, "<": W}[ch]
+                    c.facing = {"^": N, ">": E, "v": S, "<": 3}[ch]
                 elif ch == "+":
-                    c.typ = "switch"
-                    devices.append(("switch", x, y, L))
+                    # Temporary marker, normalized after the complete grid is parsed.
+                    c.typ = "marker"
                 elif ch == "R":
                     c.typ = "rotator"
                     devices.append(("rotator", x, y, L))
@@ -134,6 +166,31 @@ def build_base(level):
                 elif ch.isdigit():
                     c.typ = "dock"
                     c.dock = int(ch)
+
+    route_types = {"track", "spawn", "marker", "rotator", "bridge", "lift", "elev", "dock"}
+    for L in range(Lc):
+        for x in range(W):
+            for y in range(H):
+                c = grid[L][x][y]
+                if c.typ != "marker":
+                    continue
+                neighbours = []
+                for direction in (N, E, S, 3):
+                    dx, dy = OFF[direction]
+                    nx, ny = x + dx, y + dy
+                    neighbours.append(
+                        0 <= nx < W and 0 <= ny < H and
+                        grid[L][nx][ny].typ in route_types
+                    )
+                north, east, south, west = neighbours
+                count = sum(neighbours)
+                straight = count == 2 and ((west and east) or (north and south))
+                if straight or count < 2:
+                    c.typ = "track"
+                else:
+                    c.typ = "rotator"
+                    c.rot_mode = 0
+                    devices.append(("rotator", x, y, L))
 
     for pads in lifts.values():
         if len(pads) == 2:
@@ -170,9 +227,7 @@ def place_movables(grid, movables, indices_modes):
 def apply_device_config(grid, devices, config):
     for (kind, x, y, L), val in zip(devices, config):
         c = grid[L][x][y]
-        if kind == "switch":
-            c.switch_face = val
-        elif kind == "rotator":
+        if kind == "rotator":
             c.rot_mode = val
         elif kind == "bridge":
             c.bridge_open = bool(val)
@@ -181,14 +236,12 @@ def apply_device_config(grid, devices, config):
 
 
 def resolve_exit(c, entry):
-    if c.typ == "switch":
-        return True, c.switch_face
     if c.typ == "rotator":
         if c.rot_mode == 1:
-            return True, CCW[entry]
+            return True, N
         if c.rot_mode == 2:
-            return True, CW[entry]
-        return True, entry
+            return True, S
+        return True, E
     if c.typ == "bridge":
         return c.bridge_open, entry
     if c.typ == "reflector":
@@ -307,9 +360,7 @@ def simulate(level, grid, W, H, Lc):
 def device_domains(devices):
     domains = []
     for kind, *_ in devices:
-        if kind == "switch":
-            domains.append([N, E, S, W])
-        elif kind == "rotator":
+        if kind == "rotator":
             domains.append([0, 1, 2])
         elif kind in ("bridge", "liftable"):
             domains.append([0, 1])
@@ -330,6 +381,13 @@ def movable_domains(movables):
 
 
 def solve(level):
+    apply_opening_runway(level)
+    sx, sy, sl = level["start"]
+    rescue_row = len(level["layers"][sl]) - 1 - sy
+    opening = level["layers"][sl][rescue_row][sx + 1:sx + 6]
+    if opening != ">>>>>":
+        return False, f"opening runway violation: {opening!r}"
+
     base, W, H, Lc, devices = build_base(level)
     movables = level["movables"]
     ddom = device_domains(devices)
@@ -380,7 +438,8 @@ def main():
         if not ok:
             bad.append(lv["id"])
     print("UNSOLVABLE:", bad)
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

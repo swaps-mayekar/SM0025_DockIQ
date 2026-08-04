@@ -31,6 +31,7 @@ namespace DockIQ.Gameplay
         public void Begin(LevelDef level, GameHud hud)
         {
             _level = level;
+            _level.EnsureOpeningRunway(5);
             _hud = hud;
             _ended = false;
             _running = true;
