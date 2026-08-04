@@ -442,6 +442,8 @@ namespace DockIQ.Editor
             ("art_path_waypoint", "_pathWaypoint"),
             ("art_switch", "_switch"),
             ("art_rotator_straight", "_rotator"),
+            ("art_rotator_left", "_rotatorLeft"),
+            ("art_rotator_right", "_rotatorRight"),
             ("art_bridge_open", "_bridgeOpen"),
             ("art_bridge_closed", "_bridgeClosed"),
             ("art_lift", "_lift"),

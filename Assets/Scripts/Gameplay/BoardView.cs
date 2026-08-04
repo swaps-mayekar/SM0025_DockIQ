@@ -41,7 +41,7 @@ namespace DockIQ.Gameplay
                 float alpha = L > 0 ? 0.88f : 1f;
 
                 var tile = CreateSprite($"Cell_{L}_{x}_{y}", pos, depth);
-                Sprite art = SpriteForCell(cell);
+                Sprite art = SpriteForCell(coord, cell);
                 tile.sprite = art;
                 ApplyTileVisual(tile, art, cell);
                 var col = ColorFor(cell, art);
@@ -59,7 +59,7 @@ namespace DockIQ.Gameplay
                 {
                     AddLabel(L, x, y, pos, depth, DeviceLabel(cell));
                 }
-                else if (ShowsDirectionArrow(cell, hasArt))
+                else if (ShowsDirectionArrow(coord, cell, hasArt))
                 {
                     var arrow = CreateSprite($"Arrow_{L}_{x}_{y}", pos + new Vector3(0f, 0.08f, 0f), depth + 1);
                     Sprite arrowArt = SpriteCatalog.DirectionArrowOrFallback();
@@ -125,7 +125,8 @@ namespace DockIQ.Gameplay
                 var tile = _tiles[L, x, y];
                 if (tile != null)
                 {
-                    Sprite art = SpriteForCell(cell);
+                    var coord = new CellCoord(x, y, L);
+                    Sprite art = SpriteForCell(coord, cell);
                     if (tile.sprite != art)
                         tile.sprite = art;
                     ApplyTileVisual(tile, art, cell);
@@ -144,8 +145,10 @@ namespace DockIQ.Gameplay
                         Quaternion.Euler(0f, 0f, IsoMath.ArrowZDegrees(cell.GetDisplayDir()));
                     if (!SpriteCatalog.IsProductionArt(arrow.sprite))
                         arrow.color = MarkerColor(cell);
+                    var coord = new CellCoord(x, y, L);
                     arrow.enabled = cell.IsTraversable &&
-                                    ShowsDirectionArrow(cell, SpriteCatalog.IsProductionArt(tile != null ? tile.sprite : null));
+                                    ShowsDirectionArrow(coord, cell,
+                                        SpriteCatalog.IsProductionArt(tile != null ? tile.sprite : null));
                     if (cell.Type == CellType.Bridge)
                         arrow.enabled = cell.Device is BridgeDevice b && b.IsOpen;
                 }
@@ -172,7 +175,7 @@ namespace DockIQ.Gameplay
                 if (_tiles[c.Layer, c.X, c.Y] != null)
                 {
                     var cell = _board.Get(c);
-                    Sprite art = SpriteForCell(cell);
+                    Sprite art = SpriteForCell(c, cell);
                     _tiles[c.Layer, c.X, c.Y].sprite = art;
                     ApplyTileVisual(_tiles[c.Layer, c.X, c.Y], art, cell);
                     _tiles[c.Layer, c.X, c.Y].color = ColorFor(cell, art);
@@ -195,9 +198,9 @@ namespace DockIQ.Gameplay
                 : _board.CellSize;
             tile.transform.localScale = Vector3.one * scale;
 
-            // Track/spawn art is authored facing East (screen up-right). Reverse for West/South.
-            // North/East keep identity so the iso diamond stays grid-aligned.
-            if (OrientsWithFacing(cell.Type) && SpriteCatalog.IsProductionArt(art))
+            // Only straight belt/spawn art orients with facing. Switch/rotator slices stay upright.
+            if (OrientsWithFacing(cell.Type) && IsOrientableBeltArt(art) &&
+                SpriteCatalog.IsProductionArt(art))
             {
                 Dir dir = cell.GetDisplayDir();
                 bool reverse = dir == Dir.West || dir == Dir.South;
@@ -212,9 +215,17 @@ namespace DockIQ.Gameplay
         }
 
         private static bool OrientsWithFacing(CellType type) =>
-            type == CellType.Track || type == CellType.Spawn || type == CellType.Switch;
+            type == CellType.Track || type == CellType.Spawn;
 
-        private static Sprite SpriteForCell(CellData cell)
+        private static bool IsOrientableBeltArt(Sprite art)
+        {
+            if (art == null)
+                return false;
+            string n = art.name;
+            return n.IndexOf("rotator", System.StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        private Sprite SpriteForCell(CellCoord coord, CellData cell)
         {
             switch (cell.Type)
             {
@@ -223,9 +234,12 @@ namespace DockIQ.Gameplay
                 case CellType.Spawn:
                     return SpriteCatalog.SpawnOrFallback();
                 case CellType.Switch:
-                    return SpriteCatalog.SwitchOrFallback();
+                    // Legacy safety: any old switch-typed cell is displayed as a straight rotator.
+                    return SpriteCatalog.RotatorForModeOrFallback(0);
                 case CellType.Rotator:
-                    return SpriteCatalog.RotatorOrFallback();
+                    if (cell.Device is not RotatorDevice rotator)
+                        return SpriteCatalog.TrackOrFallback();
+                    return SpriteCatalog.RotatorForModeOrFallback(rotator.Mode);
                 case CellType.Bridge:
                     bool open = cell.Device is BridgeDevice b && b.IsOpen;
                     return SpriteCatalog.BridgeOrFallback(open);
@@ -264,14 +278,16 @@ namespace DockIQ.Gameplay
             }
         }
 
-        private static bool ShowsDirectionArrow(CellData cell, bool tileHasProductionArt)
+        private bool ShowsDirectionArrow(CellCoord coord, CellData cell, bool tileHasProductionArt)
         {
             // Straight belts/spawns: no overlay arrows — production track art is direction-neutral.
             if (cell.Type == CellType.Track || cell.Type == CellType.Spawn)
                 return !tileHasProductionArt;
 
-            // Switches/rotators still need an exit-direction cue when tapped.
-            return cell.Type == CellType.Switch || cell.Type == CellType.Rotator;
+            // Rotators always need an exit-direction cue when tapped.
+            if (cell.Type == CellType.Rotator)
+                return cell.Device is RotatorDevice;
+            return false;
         }
 
         private void AddLabel(int layer, int x, int y, Vector3 pos, int depth, string text)

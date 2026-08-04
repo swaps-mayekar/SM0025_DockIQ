@@ -38,6 +38,27 @@ namespace DockIQ.UI
                 ? _boardArt.Rotator
                 : Load("Sprites/Devices/rotator") ?? PlaceholderArt.IsoDiamond();
 
+        public static Sprite RotatorForModeOrFallback(int mode)
+        {
+            int normalized = ((mode % 3) + 3) % 3;
+            if (_boardArt != null)
+            {
+                if (normalized == 1 && _boardArt.RotatorLeft != null)
+                    return _boardArt.RotatorLeft;
+                if (normalized == 2 && _boardArt.RotatorRight != null)
+                    return _boardArt.RotatorRight;
+                if (_boardArt.Rotator != null)
+                    return _boardArt.Rotator;
+            }
+
+            return normalized switch
+            {
+                1 => Load("Sprites/Devices/rotator_left"),
+                2 => Load("Sprites/Devices/rotator_right"),
+                _ => Load("Sprites/Devices/rotator_straight")
+            } ?? RotatorOrFallback();
+        }
+
         public static Sprite BridgeOrFallback(bool open)
         {
             if (_boardArt != null)

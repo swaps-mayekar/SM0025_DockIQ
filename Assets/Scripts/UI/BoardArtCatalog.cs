@@ -21,6 +21,8 @@ namespace DockIQ.UI
         [Header("Devices")]
         [SerializeField] private Sprite _switch;
         [SerializeField] private Sprite _rotator;
+        [SerializeField] private Sprite _rotatorLeft;
+        [SerializeField] private Sprite _rotatorRight;
         [SerializeField] private Sprite _bridgeOpen;
         [SerializeField] private Sprite _bridgeClosed;
         [SerializeField] private Sprite _lift;
@@ -45,6 +47,8 @@ namespace DockIQ.UI
         public Sprite PathWaypoint => _pathWaypoint;
         public Sprite Switch => _switch;
         public Sprite Rotator => _rotator;
+        public Sprite RotatorLeft => _rotatorLeft;
+        public Sprite RotatorRight => _rotatorRight;
         public Sprite BridgeOpen => _bridgeOpen;
         public Sprite BridgeClosed => _bridgeClosed;
         public Sprite Lift => _lift;

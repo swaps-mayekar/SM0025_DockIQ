@@ -162,7 +162,7 @@ namespace DockIQ.Board
 
             IDevice device = def.Kind switch
             {
-                'R' or 'r' => new RotatorDevice(def.RotatorMode),
+                'R' or 'r' => new RotatorDevice(0),
                 'm' or 'M' => new ReflectorDevice(),
                 'O' or 'o' => new ObstacleDevice(),
                 _ => new ObstacleDevice()
@@ -464,9 +464,8 @@ namespace DockIQ.Board
                     break;
 
                 case '+':
-                    cell.Type = CellType.Switch;
-                    cell.Facing = Dir.East;
-                    cell.Device = new SwitchDevice(Dir.East);
+                    cell.Type = CellType.Rotator;
+                    cell.Device = new RotatorDevice(0);
                     break;
 
                 case 'R':

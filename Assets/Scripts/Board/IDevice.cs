@@ -17,26 +17,6 @@ namespace DockIQ.Board
         Dir GetDisplayDir();
     }
 
-    /// <summary>Railway switch / turnout — forces robots onto the selected exit.</summary>
-    public sealed class SwitchDevice : IDevice
-    {
-        public Dir Facing { get; private set; }
-
-        public SwitchDevice(Dir facing) => Facing = facing;
-
-        public bool CanInteract => true;
-
-        public void OnTap() => Facing = DirUtil.RotateCw(Facing);
-
-        public bool TryResolveExit(Dir entryDir, out Dir exitDir)
-        {
-            exitDir = Facing;
-            return true;
-        }
-
-        public Dir GetDisplayDir() => Facing;
-    }
-
     /// <summary>
     /// Rotating intersection: tap cycles Straight / Left / Right relative to entry.
     /// </summary>

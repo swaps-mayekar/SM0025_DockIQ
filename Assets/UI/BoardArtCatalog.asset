@@ -72,6 +72,8 @@ MonoBehaviour:
   _pathWaypoint: {fileID: -1618744052, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
   _switch: {fileID: -7041902337959529205, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
   _rotator: {fileID: -1207147955, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
+  _rotatorLeft: {fileID: 621563839, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
+  _rotatorRight: {fileID: 1686918679, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
   _bridgeOpen: {fileID: -1484556914, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
   _bridgeClosed: {fileID: -148576646, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
   _lift: {fileID: -1790111322, guid: e794d517a019d433a80c99d11fa67d21, type: 3}

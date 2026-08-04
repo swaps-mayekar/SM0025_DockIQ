@@ -37,13 +37,13 @@ namespace DockIQ.Gameplay
         public static IReadOnlyList<TutorialTip> AllTips { get; } = new[]
         {
             new TutorialTip(MissionBasics, "Manual Control",
-                "Robots drive the rails on their own. Tap switches to reroute the highlighted rescue robot to the correct dock before time runs out."),
+                "Robots drive the rails on their own. Tap turntables to reroute the highlighted rescue robot to the correct dock before time runs out."),
             new TutorialTip(WrongDock, "Pick the Right Gate",
                 "Multiple docks are open. Only the named dock counts — the wrong bay fails the rescue."),
             new TutorialTip(Decoys, "Decoy Traffic",
                 "Other robots share the yard. They ignore your mission. Collisions with scrap or blocked paths fail instantly."),
-            new TutorialTip(Switches, "Switches",
-                "Tap a switch (+) to flip which way the track forks."),
+            new TutorialTip(Switches, "Turntables",
+                "Tap a turntable (+) to cycle Straight, Left, and Right."),
             new TutorialTip(Bridges, "Drawbridges",
                 "Tap a bridge (B) to open or close it. Closed bridges block robots."),
             new TutorialTip(Rotators, "Turntables",

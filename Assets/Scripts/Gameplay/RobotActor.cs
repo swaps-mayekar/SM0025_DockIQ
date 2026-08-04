@@ -122,6 +122,7 @@ namespace DockIQ.Gameplay
                 }
 
                 transform.position = Vector3.Lerp(_from, _to, Mathf.SmoothStep(0f, 1f, _t));
+                ApplyDepth();
             }
 
             if (IsRescue && _outline != null)
@@ -149,10 +150,12 @@ namespace DockIQ.Gameplay
 
         private void ApplyDepth()
         {
+            // Keep sorting synced with interpolated Y so belts don't pop over parcels mid-step.
+            int dynamicDepth = Coord.Layer * 1000 - Mathf.RoundToInt(transform.position.y * 40f);
             if (_body != null)
-                _body.sortingOrder = IsoMath.DepthOrder(Coord, 5);
+                _body.sortingOrder = dynamicDepth + 5;
             if (_outline != null)
-                _outline.sortingOrder = IsoMath.DepthOrder(Coord, 4);
+                _outline.sortingOrder = dynamicDepth + 4;
         }
 
         private SpriteRenderer CreateChild(string name, int sorting)

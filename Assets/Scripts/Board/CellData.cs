@@ -57,8 +57,6 @@ namespace DockIQ.Board
         public void OnTap()
         {
             Device?.OnTap();
-            if (Device is SwitchDevice sw)
-                Facing = sw.Facing;
         }
     }
 }
