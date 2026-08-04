@@ -114,6 +114,8 @@ namespace DockIQ.Board
                 }
             }
 
+            NormalizeRotatorMarkers();
+
             foreach (var kv in liftsByPair)
             {
                 var pads = kv.Value;
@@ -147,6 +149,58 @@ namespace DockIQ.Board
                 for (int i = 0; i < movables.Length; i++)
                     PlaceMovable(i, movables[i]);
             }
+        }
+
+        /// <summary>
+        /// '+' marks a configurable route in level data. It is unnecessary on a straight,
+        /// two-sided path, so only corners/forks become interactive rotators.
+        /// </summary>
+        private void NormalizeRotatorMarkers()
+        {
+            for (int layer = 0; layer < LayerCount; layer++)
+            for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+            {
+                CellData cell = Get(layer, x, y);
+                if (cell.Type != CellType.Switch)
+                    continue;
+
+                var coord = new CellCoord(x, y, layer);
+                bool west = IsRouteCell(coord.WithOffset(DirUtil.ToOffset(Dir.West)));
+                bool east = IsRouteCell(coord.WithOffset(DirUtil.ToOffset(Dir.East)));
+                bool north = IsRouteCell(coord.WithOffset(DirUtil.ToOffset(Dir.North)));
+                bool south = IsRouteCell(coord.WithOffset(DirUtil.ToOffset(Dir.South)));
+                int count = (west ? 1 : 0) + (east ? 1 : 0) +
+                            (north ? 1 : 0) + (south ? 1 : 0);
+                bool straight = count == 2 && ((west && east) || (north && south));
+
+                if (straight || count < 2)
+                {
+                    cell.Type = CellType.Track;
+                    cell.Device = null;
+                }
+                else
+                {
+                    cell.Type = CellType.Rotator;
+                    cell.Device = new RotatorDevice(0);
+                }
+            }
+        }
+
+        private bool IsRouteCell(CellCoord coord)
+        {
+            if (!InBounds(coord))
+                return false;
+
+            CellType type = Get(coord).Type;
+            return type == CellType.Track
+                || type == CellType.Spawn
+                || type == CellType.Switch
+                || type == CellType.Rotator
+                || type == CellType.Bridge
+                || type == CellType.Lift
+                || type == CellType.Elevator
+                || type == CellType.Dock;
         }
 
         public void Build(string[] rows, float cellSize = 1f) =>
@@ -464,7 +518,8 @@ namespace DockIQ.Board
                     break;
 
                 case '+':
-                    cell.Type = CellType.Rotator;
+                    // Temporary marker; normalized after the whole layer is parsed.
+                    cell.Type = CellType.Switch;
                     cell.Device = new RotatorDevice(0);
                     break;
 

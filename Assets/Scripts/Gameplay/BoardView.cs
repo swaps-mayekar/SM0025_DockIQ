@@ -278,17 +278,7 @@ namespace DockIQ.Gameplay
             }
         }
 
-        private bool ShowsDirectionArrow(CellCoord coord, CellData cell, bool tileHasProductionArt)
-        {
-            // Straight belts/spawns: no overlay arrows — production track art is direction-neutral.
-            if (cell.Type == CellType.Track || cell.Type == CellType.Spawn)
-                return !tileHasProductionArt;
-
-            // Rotators always need an exit-direction cue when tapped.
-            if (cell.Type == CellType.Rotator)
-                return cell.Device is RotatorDevice;
-            return false;
-        }
+        private static bool ShowsDirectionArrow(CellCoord coord, CellData cell, bool tileHasProductionArt) => false;
 
         private void AddLabel(int layer, int x, int y, Vector3 pos, int depth, string text)
         {

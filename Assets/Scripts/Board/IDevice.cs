@@ -18,7 +18,8 @@ namespace DockIQ.Board
     }
 
     /// <summary>
-    /// Rotating intersection: tap cycles Straight / Left / Right relative to entry.
+    /// Rotating intersection with absolute exits matching its artwork:
+    /// Straight = East, Left = North, Right = South.
     /// </summary>
     public sealed class RotatorDevice : IDevice
     {
@@ -38,18 +39,18 @@ namespace DockIQ.Board
         {
             exitDir = _mode switch
             {
-                1 => DirUtil.RotateCcw(entryDir),
-                2 => DirUtil.RotateCw(entryDir),
-                _ => entryDir
+                1 => Dir.North,
+                2 => Dir.South,
+                _ => Dir.East
             };
             return true;
         }
 
         public Dir GetDisplayDir() => _mode switch
         {
-            1 => Dir.West,
-            2 => Dir.East,
-            _ => Dir.North
+            1 => Dir.North,
+            2 => Dir.South,
+            _ => Dir.East
         };
 
         public string ModeLabel => _mode switch
