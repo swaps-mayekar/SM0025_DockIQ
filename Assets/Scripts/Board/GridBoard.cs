@@ -337,6 +337,12 @@ namespace DockIQ.Board
             cell.ElevatorTarget = to;
             if (cell.Device is ElevatorDevice elev)
                 elev.LinkedCell = to;
+
+            if (from.X != to.X || from.Y != to.Y)
+            {
+                Debug.LogWarning(
+                    $"Elevator pair pads should share X/Y for a vertical shaft; got {from} ↔ {to}");
+            }
         }
 
         public Vector3 CellToWorld(CellCoord cell, float z = 0f)

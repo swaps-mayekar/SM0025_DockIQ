@@ -81,7 +81,53 @@ namespace DockIQ.Gameplay
             }
 
             DrawMovablePaths();
+            DrawElevatorShafts();
             RefreshDevices();
+        }
+
+        /// <summary>
+        /// Draw a thin vertical connector between co-located elevator pads so the shaft reads clearly
+        /// across the increased floor gap.
+        /// </summary>
+        private void DrawElevatorShafts()
+        {
+            var drawn = new System.Collections.Generic.HashSet<long>();
+            for (int L = 0; L < _board.LayerCount; L++)
+            for (int y = 0; y < _board.Height; y++)
+            for (int x = 0; x < _board.Width; x++)
+            {
+                var cell = _board.Get(L, x, y);
+                if (!cell.IsElevator)
+                    continue;
+
+                CellCoord from = new CellCoord(x, y, L);
+                CellCoord to = cell.ElevatorTarget;
+                if (!_board.InBounds(to) || to.Layer == from.Layer)
+                    continue;
+                if (to.X != from.X || to.Y != from.Y)
+                    continue;
+
+                long key = (((long)from.X * 37 + from.Y) * 37 +
+                            System.Math.Min(from.Layer, to.Layer)) * 37 +
+                           System.Math.Max(from.Layer, to.Layer);
+                if (!drawn.Add(key))
+                    continue;
+
+                Vector3 a = _board.CellToWorld(from, 0.02f);
+                Vector3 b = _board.CellToWorld(to, 0.02f);
+                Vector3 mid = (a + b) * 0.5f;
+                float span = Mathf.Abs(b.y - a.y);
+                if (span < 0.05f)
+                    continue;
+
+                var sr = CreateSprite($"Shaft_{from.X}_{from.Y}", mid, IsoMath.DepthOrder(from, -2));
+                sr.sprite = PlaceholderArt.IsoDiamond();
+                sr.color = new Color(0.45f, 0.75f, 0.90f, 0.35f);
+                // Stretch the diamond into a narrow vertical bar between floors.
+                float w = _board.CellSize * 0.12f;
+                float h = span * 0.92f;
+                sr.transform.localScale = new Vector3(w, h, 1f);
+            }
         }
 
         private void DrawMovablePaths()

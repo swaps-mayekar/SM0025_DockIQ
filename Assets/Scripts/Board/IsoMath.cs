@@ -14,8 +14,12 @@ namespace DockIQ.Board
         /// <summary>Vertical span of one diamond tile (half of width for 2:1 iso).</summary>
         public const float TileHeight = 0.5f;
 
-        /// <summary>World-Y offset between stacked track floors.</summary>
-        public const float LayerHeight = 0.55f;
+        /// <summary>
+        /// World-Y offset between stacked track floors.
+        /// Kept clearly larger than TileHeight so elevator shafts read as vertical
+        /// and upper/lower belts do not visually merge.
+        /// </summary>
+        public const float LayerHeight = 1.35f;
 
         public static Vector3 CellToWorld(int x, int y, float z = 0f) =>
             CellToWorld(x, y, 0, z);
@@ -99,7 +103,7 @@ namespace DockIQ.Board
                 bMax = Vector2.Max(bMax, v);
             }
 
-            var pad = new Vector2(TileWidth * 0.5f, TileHeight * 0.5f);
+            var pad = new Vector2(TileWidth * 0.5f, TileHeight * 0.5f + Mathf.Max(0, layers - 1) * LayerHeight * 0.15f);
             min = bMin - pad;
             max = bMax + pad;
         }
