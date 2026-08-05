@@ -66,6 +66,16 @@ MonoBehaviour:
   - {fileID: 1046721849985281810, guid: 9b52f8468f8a746fc97081a649911871, type: 3}
   - {fileID: -8266205516308540991, guid: 9b52f8468f8a746fc97081a649911871, type: 3}
   - {fileID: 3913679822540184414, guid: 9b52f8468f8a746fc97081a649911871, type: 3}
+  _achievements:
+  - {fileID: 6658701557034754128, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: 242213121, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: 9586212, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: 182631385, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: -1826488925, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: 575156146, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: 1708368269, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: 1531764479, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
+  - {fileID: 17866514, guid: 31331991fa4c147d9aaf07fb7b1e6d79, type: 3}
   _track: {fileID: 121040040812157351, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
   _spawn: {fileID: -1056325438, guid: e794d517a019d433a80c99d11fa67d21, type: 3}
   _directionArrow: {fileID: -1680561889, guid: e794d517a019d433a80c99d11fa67d21, type: 3}

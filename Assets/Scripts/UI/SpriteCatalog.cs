@@ -158,6 +158,10 @@ namespace DockIQ.UI
         public static Sprite GateForDockId(int dockId) =>
             _boardArt != null ? _boardArt.GateForDockId(dockId) : null;
 
+        /// <summary>Achievement badge (Achievements_0 = first catalog entry).</summary>
+        public static Sprite AchievementIcon(int index) =>
+            _boardArt != null ? _boardArt.AchievementIcon(index) : null;
+
         /// <summary>True when the sprite is painted production art (not a procedural placeholder).</summary>
         public static bool IsProductionArt(Sprite sprite)
         {

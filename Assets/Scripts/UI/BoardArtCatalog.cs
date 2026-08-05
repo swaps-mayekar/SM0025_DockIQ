@@ -11,6 +11,7 @@ namespace DockIQ.UI
         [Header("Cargo & docks")]
         [SerializeField] private Sprite[] _parcels;
         [SerializeField] private Sprite[] _gates;
+        [SerializeField] private Sprite[] _achievements;
 
         [Header("Tracks")]
         [SerializeField] private Sprite _track;
@@ -40,6 +41,9 @@ namespace DockIQ.UI
         public Sprite ParcelForLevel(int levelId) => Slice(_parcels, levelId - 1);
 
         public Sprite GateForDockId(int dockId) => Slice(_gates, dockId - 1);
+
+        /// <summary>Achievement badge (Achievements_0 = first catalog entry).</summary>
+        public Sprite AchievementIcon(int index) => Slice(_achievements, index);
 
         public Sprite Track => _track;
         public Sprite Spawn => _spawn;

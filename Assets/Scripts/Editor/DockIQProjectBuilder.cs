@@ -221,9 +221,8 @@ namespace DockIQ.Editor
                 "Story advances the rescue campaign. Free Play replays unlocked levels.",
                 20, FontStyles.Normal, new Vector2(0f, -40f), new Vector2(920f, 80f), PlaceholderArt.Text);
 
-            var achievementsPanel = CreateModalPanel("Panel_Achievements", canvasRt, "Achievements",
-                "Achievements coming soon.\n\nComplete Story rescues to unlock future badges for perfect runs, decoy-free clears, and full-yard mastery.",
-                out Button achievementsBack);
+            var achievementsPanel = CreateScrollModalPanel("Panel_Achievements", canvasRt, "Achievements",
+                out TextMeshProUGUI achievementsBody, out Button achievementsBack);
 
             var howToPanel = CreateScrollModalPanel("Panel_HowToPlay", canvasRt, "How to Play",
                 out TextMeshProUGUI howToBody, out Button howToBack);
@@ -244,6 +243,8 @@ namespace DockIQ.Editor
             so.FindProperty("_playBackButton").objectReferenceValue = playBack;
             so.FindProperty("_achievementsPanel").objectReferenceValue = achievementsPanel;
             so.FindProperty("_achievementsBackButton").objectReferenceValue = achievementsBack;
+            so.FindProperty("_achievementsBody").objectReferenceValue = achievementsBody;
+            AssignMenuAchievementIcons(so);
             so.FindProperty("_howToPlayPanel").objectReferenceValue = howToPanel;
             so.FindProperty("_howToPlayBackButton").objectReferenceValue = howToBack;
             so.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
@@ -252,6 +253,13 @@ namespace DockIQ.Editor
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("DockIQ: Main menu modes added (MenuBG / GameLogo preserved).");
+        }
+
+        private static void AssignMenuAchievementIcons(SerializedObject menuSo)
+        {
+            var catalog = EnsureBoardArtCatalog();
+            menuSo.FindProperty("_boardArt").objectReferenceValue = catalog;
+            AssignSortedSprites(menuSo.FindProperty("_achievementIcons"), AchievementsTexturePath);
         }
 
         private static GameObject FindInSceneIncludingInactive(UnityEngine.SceneManagement.Scene scene, string name)
@@ -431,6 +439,7 @@ namespace DockIQ.Editor
         private const string BoardArtPath = "Assets/UI/BoardArtCatalog.asset";
         private const string ParcelsTexturePath = "Assets/UI/Parcels.png";
         private const string GatesTexturePath = "Assets/UI/Gates.png";
+        private const string AchievementsTexturePath = "Assets/UI/Achievements.png";
         private const string ArtAssetsPath = "Assets/UI/Art_assets.png";
 
         /// <summary>Slice name inside Art_assets.png → BoardArtCatalog field.</summary>
@@ -496,6 +505,7 @@ namespace DockIQ.Editor
             var so = new SerializedObject(catalog);
             AssignSortedSprites(so.FindProperty("_parcels"), ParcelsTexturePath);
             AssignSortedSprites(so.FindProperty("_gates"), GatesTexturePath);
+            AssignSortedSprites(so.FindProperty("_achievements"), AchievementsTexturePath);
 
             var byName = LoadSpritesByName(ArtAssetsPath);
             int assigned = 0;
@@ -518,7 +528,7 @@ namespace DockIQ.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(catalog);
             AssetDatabase.SaveAssets();
-            Debug.Log($"DockIQ: Board art catalog updated ({assigned} Art_assets slices + parcels/gates).");
+            Debug.Log($"DockIQ: Board art catalog updated ({assigned} Art_assets slices + parcels/gates/achievements).");
         }
 
         private static void ConfigureArtAssetsSheet()
@@ -878,12 +888,11 @@ namespace DockIQ.Editor
             }
 
             CreateText("Hint", playPanel.transform,
-                "Tap switches, turntables, bridges & liftables. Slide path pieces. Avoid scrap - collisions fail!",
+                "Tap turntables, bridges & liftables. Slide path pieces. Avoid scrap — collisions fail!",
                 20, FontStyles.Normal, new Vector2(0f, -920f), new Vector2(960f, 110f), PlaceholderArt.Text);
 
-            var achievementsPanel = CreateModalPanel("Panel_Achievements", root, "Achievements",
-                "Achievements coming soon.\n\nComplete Story rescues to unlock future badges for perfect runs, decoy-free clears, and full-yard mastery.",
-                out Button achievementsBack);
+            var achievementsPanel = CreateScrollModalPanel("Panel_Achievements", root, "Achievements",
+                out TextMeshProUGUI achievementsBody, out Button achievementsBack);
             var howToPanel = CreateScrollModalPanel("Panel_HowToPlay", root, "How to Play",
                 out TextMeshProUGUI howToBody, out Button howToBack);
 
@@ -907,6 +916,8 @@ namespace DockIQ.Editor
                 menuSo.FindProperty("_levelButtons").GetArrayElementAtIndex(i).objectReferenceValue = levelViews[i];
             menuSo.FindProperty("_achievementsPanel").objectReferenceValue = achievementsPanel;
             menuSo.FindProperty("_achievementsBackButton").objectReferenceValue = achievementsBack;
+            menuSo.FindProperty("_achievementsBody").objectReferenceValue = achievementsBody;
+            AssignMenuAchievementIcons(menuSo);
             menuSo.FindProperty("_howToPlayPanel").objectReferenceValue = howToPanel;
             menuSo.FindProperty("_howToPlayBackButton").objectReferenceValue = howToBack;
             menuSo.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;

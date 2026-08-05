@@ -11,6 +11,8 @@ namespace DockIQ.Core
         public int lastCompleted;
         /// <summary>Comma-separated tutorial tip ids the player has already seen.</summary>
         public string seenTutorialTips = "";
+        /// <summary>Comma-separated achievement ids the player has unlocked.</summary>
+        public string unlockedAchievements = "";
     }
 
     public static class ProgressStore
@@ -103,6 +105,38 @@ namespace DockIQ.Core
         {
             Current.seenTutorialTips = "";
             Save();
+        }
+
+        public static bool HasAchievement(string achievementId)
+        {
+            if (string.IsNullOrEmpty(achievementId))
+                return false;
+
+            string unlocked = Current.unlockedAchievements ?? "";
+            if (string.IsNullOrEmpty(unlocked))
+                return false;
+
+            var parts = unlocked.Split(',');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i] == achievementId)
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Unlocks an achievement if new. Returns true when newly unlocked.</summary>
+        public static bool MarkAchievement(string achievementId)
+        {
+            if (string.IsNullOrEmpty(achievementId) || HasAchievement(achievementId))
+                return false;
+
+            Current.unlockedAchievements = string.IsNullOrEmpty(Current.unlockedAchievements)
+                ? achievementId
+                : Current.unlockedAchievements + "," + achievementId;
+            Save();
+            return true;
         }
     }
 }

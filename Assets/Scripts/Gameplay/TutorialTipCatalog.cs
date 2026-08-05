@@ -26,6 +26,7 @@ namespace DockIQ.Gameplay
         public const string Decoys = "decoys";
         public const string Switches = "mech_switches";
         public const string Bridges = "mech_bridges";
+        /// <summary>Legacy id — turntables now use <see cref="Switches"/>.</summary>
         public const string Rotators = "mech_rotators";
         public const string Lifts = "mech_lifts";
         public const string Reflectors = "mech_reflectors";
@@ -37,29 +38,27 @@ namespace DockIQ.Gameplay
         public static IReadOnlyList<TutorialTip> AllTips { get; } = new[]
         {
             new TutorialTip(MissionBasics, "Manual Control",
-                "Robots drive the rails on their own. Tap turntables to reroute the highlighted rescue robot to the correct dock before time runs out."),
+                "Robots drive themselves. Tap turntables to route the highlighted rescue robot to the named dock before time runs out."),
             new TutorialTip(WrongDock, "Pick the Right Gate",
-                "Multiple docks are open. Only the named dock counts — the wrong bay fails the rescue."),
+                "Only the named dock counts — the wrong bay fails."),
             new TutorialTip(Decoys, "Decoy Traffic",
-                "Other robots share the yard. They ignore your mission. Collisions with scrap or blocked paths fail instantly."),
+                "Other robots ignore your mission. Collisions fail instantly."),
             new TutorialTip(Switches, "Turntables",
-                "Tap a turntable (+) to cycle Straight, Left, and Right."),
+                "Tap a turntable to cycle Straight, Left, and Right."),
             new TutorialTip(Bridges, "Drawbridges",
-                "Tap a bridge (B) to open or close it. Closed bridges block robots."),
-            new TutorialTip(Rotators, "Turntables",
-                "Tap a turntable (R) to rotate the intersection and change which exit the robot takes."),
+                "Tap to open or close. Closed bridges block robots."),
             new TutorialTip(Lifts, "Freight Lifts",
-                "Matching lift pads (A/a) teleport a robot across the same floor. Time the transfer so your rescue robot lands on the right path."),
+                "Matching pads teleport a robot across the same floor."),
             new TutorialTip(Reflectors, "Reflectors",
-                "Mirrors (M) reverse a robot's travel direction when it hits them."),
+                "Mirrors reverse a robot's travel direction."),
             new TutorialTip(Obstacles, "Scrap & Obstacles",
-                "Obstacles block the track. Hitting scrap fails the level — clear or slide them out of the way."),
+                "Hitting scrap fails. Slide or clear blockers off the track."),
             new TutorialTip(Movables, "Sliding Pieces",
-                "Tap path pieces to slide them along their route. Use them to open lanes or redirect traffic."),
+                "Tap path pieces to slide them and open or redirect lanes."),
             new TutorialTip(Liftables, "Liftable Crates",
-                "Tap a liftable (X) to raise it. Raised crates can be passed under; lowered ones block and clash."),
+                "Tap to raise. Raised crates can be passed; lowered ones block."),
             new TutorialTip(Elevators, "Elevators",
-                "Elevators (E/e) move robots between floors. Watch both decks — decoys and docks may be upstairs.")
+                "Move robots between floors. Decys and docks may be upstairs.")
         };
 
         public static List<TutorialTip> GetPendingTips(LevelDef level)
@@ -76,14 +75,12 @@ namespace DockIQ.Gameplay
                 TryAdd(tips, Decoys);
 
             var m = level.Mechanics;
-            if ((m & MechanicsMask.Switches) != 0 && level.Id != 1)
-                TryAdd(tips, Switches);
+            bool hasTurntable = (m & MechanicsMask.Switches) != 0 || (m & MechanicsMask.Rotators) != 0;
+            if (hasTurntable && level.Id != 1)
+                TryAddTurntable(tips);
 
             if ((m & MechanicsMask.Bridges) != 0)
                 TryAdd(tips, Bridges);
-
-            if ((m & MechanicsMask.Rotators) != 0)
-                TryAdd(tips, Rotators);
 
             if ((m & MechanicsMask.Lifts) != 0)
                 TryAdd(tips, Lifts);
@@ -117,12 +114,28 @@ namespace DockIQ.Gameplay
             return default;
         }
 
-        /// <summary>Extra tip ids to mark seen when a tip is dismissed (avoids duplicate switch tip after level 1).</summary>
+        /// <summary>Extra tip ids to mark seen when a tip is dismissed (avoids duplicate turntable tips).</summary>
         public static void MarkDismissed(string tipId)
         {
             ProgressStore.MarkTutorialTipSeen(tipId);
-            if (tipId == MissionBasics)
-                ProgressStore.MarkTutorialTipSeen(Switches);
+            if (tipId == MissionBasics || tipId == Switches || tipId == Rotators)
+                MarkTurntableSeen();
+        }
+
+        private static void MarkTurntableSeen()
+        {
+            ProgressStore.MarkTutorialTipSeen(Switches);
+            ProgressStore.MarkTutorialTipSeen(Rotators);
+        }
+
+        private static bool HasSeenTurntableTip() =>
+            ProgressStore.HasSeenTutorialTip(Switches) || ProgressStore.HasSeenTutorialTip(Rotators);
+
+        private static void TryAddTurntable(List<TutorialTip> tips)
+        {
+            if (HasSeenTurntableTip())
+                return;
+            tips.Add(FindTip(Switches));
         }
 
         private static void TryAdd(List<TutorialTip> tips, string id)

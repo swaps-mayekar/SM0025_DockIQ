@@ -252,6 +252,8 @@ namespace DockIQ.Gameplay
             if (GameSession.IsStory)
                 ProgressStore.MarkLevelCompleted(_level.Id);
 
+            AchievementStore.EvaluateOnWin(_level, _timeLeft, GameSession.Mode);
+
             bool hasNext = GameSession.IsStory
                 ? _level.Id < LevelCatalog.Count
                 : _level.Id < LevelCatalog.Count && ProgressStore.IsUnlocked(_level.Id + 1);
