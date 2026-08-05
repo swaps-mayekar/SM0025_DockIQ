@@ -54,6 +54,11 @@ namespace DockIQ.UI
             img.sprite = PlaceholderArt.WhiteSquare();
             img.color = color;
             img.type = Image.Type.Simple;
+            // Prefer production chrome for modal-sized panels.
+            if (size.x >= 500f && size.y >= 280f && color.a > 0.5f)
+                UiChrome.ApplyPanel(img, large: size.y >= 700f);
+            else if (color.a < 0.5f || name.IndexOf("Backdrop", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                UiChrome.ApplyBackdrop(img);
             return img;
         }
 
@@ -90,10 +95,11 @@ namespace DockIQ.UI
             rt.anchoredPosition = anchoredPos;
 
             var img = go.GetComponent<Image>();
-            img.sprite = PlaceholderArt.WhiteSquare();
-            img.color = new Color(0.15f, 0.35f, 0.55f, 1f);
-
             var btn = go.GetComponent<Button>();
+            UiChrome.ApplyButton(img, btn, UiChrome.StyleForButtonName(name));
+            if (img.sprite == null || img.sprite.name == "PlaceholderWhite")
+                img.color = new Color(0.15f, 0.35f, 0.55f, 1f);
+
             btn.targetGraphic = img;
             btn.onClick.AddListener(onClick);
 

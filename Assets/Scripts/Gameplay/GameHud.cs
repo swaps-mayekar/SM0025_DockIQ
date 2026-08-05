@@ -15,6 +15,7 @@ namespace DockIQ.Gameplay
         [SerializeField] private TextMeshProUGUI _timerText;
         [SerializeField] private TextMeshProUGUI _titleText;
         [SerializeField] private Button _pauseButton;
+        [SerializeField] private Image _timerBezel;
 
         [Header("Result Modal")]
         [SerializeField] private GameObject _resultPanel;
@@ -22,6 +23,7 @@ namespace DockIQ.Gameplay
         [SerializeField] private Button _nextButton;
         [SerializeField] private Button _retryResultButton;
         [SerializeField] private Button _menuResultButton;
+        [SerializeField] private Image _resultEmblem;
 
         [Header("Pause Modal")]
         [SerializeField] private GameObject _pauseBackdrop;
@@ -37,6 +39,7 @@ namespace DockIQ.Gameplay
         [SerializeField] private TextMeshProUGUI _tutorialTitle;
         [SerializeField] private TextMeshProUGUI _tutorialBody;
         [SerializeField] private Button _tutorialGotItButton;
+        [SerializeField] private Image _tutorialArt;
 
         private Action _onPause;
         private Action _onResume;
@@ -85,6 +88,11 @@ namespace DockIQ.Gameplay
 
         public bool ShowTutorial(string title, string body, Action onDismissed)
         {
+            return ShowTutorial(title, body, null, onDismissed);
+        }
+
+        public bool ShowTutorial(string title, string body, string tipId, Action onDismissed)
+        {
             if (_tutorialPanel == null)
             {
                 Debug.LogWarning("GameHud: Tutorial panel is not assigned — tip will not be marked seen.");
@@ -96,6 +104,13 @@ namespace DockIQ.Gameplay
                 _tutorialTitle.text = title;
             if (_tutorialBody != null)
                 _tutorialBody.text = body;
+
+            if (_tutorialArt != null)
+            {
+                Sprite art = UiChrome.Tutorial(tipId);
+                _tutorialArt.sprite = art;
+                _tutorialArt.enabled = art != null;
+            }
 
             HidePause();
             if (_pauseButton != null)
@@ -138,7 +153,16 @@ namespace DockIQ.Gameplay
             seconds = Mathf.Max(0f, seconds);
             int s = Mathf.CeilToInt(seconds);
             _timerText.text = $"{s / 60}:{s % 60:00}";
-            _timerText.color = seconds <= 8f ? PlaceholderArt.DockWrong : PlaceholderArt.Hazard;
+            bool urgent = seconds <= 8f;
+            _timerText.color = urgent ? PlaceholderArt.DockWrong : PlaceholderArt.Hazard;
+
+            if (_timerBezel != null)
+            {
+                Sprite bezel = urgent ? UiChrome.TimerUrgent : UiChrome.TimerOk;
+                if (bezel != null)
+                    _timerBezel.sprite = bezel;
+                _timerBezel.enabled = _timerBezel.sprite != null;
+            }
         }
 
         public void HideResult()
@@ -156,6 +180,13 @@ namespace DockIQ.Gameplay
             HideTutorial();
             if (_pauseButton != null)
                 _pauseButton.gameObject.SetActive(false);
+
+            if (_resultEmblem != null)
+            {
+                _resultEmblem.sprite = success ? UiChrome.ResultSuccess : UiChrome.ResultFail;
+                _resultEmblem.enabled = _resultEmblem.sprite != null;
+                _resultEmblem.color = Color.white;
+            }
 
             _resultPanel.SetActive(true);
             if (_resultText != null)

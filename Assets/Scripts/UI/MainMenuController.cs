@@ -448,9 +448,10 @@ namespace DockIQ.UI
                 var image = view.Button.GetComponent<Image>();
                 if (image != null)
                 {
-                    image.color = unlocked
-                        ? new Color(0.18f, 0.35f, 0.55f, 1f)
-                        : new Color(0.2f, 0.22f, 0.25f, 1f);
+                    bool completed = unlocked && ProgressStore.Current.lastCompleted >= id;
+                    int mission = ProgressStore.Current.highestUnlocked;
+                    bool selected = unlocked && id == mission;
+                    UiChrome.ApplyLevelTile(image, unlocked, selected, completed);
                 }
 
                 view.Button.interactable = unlocked;
@@ -542,10 +543,9 @@ namespace DockIQ.UI
             rowRt.sizeDelta = new Vector2(0f, AchievementRowHeight);
 
             var rowBg = row.GetComponent<Image>();
-            rowBg.sprite = PlaceholderArt.WhiteSquare();
-            rowBg.color = unlocked
-                ? new Color(0.10f, 0.18f, 0.28f, 0.92f)
-                : new Color(0.08f, 0.10f, 0.14f, 0.85f);
+            rowBg.sprite = UiChrome.RowBackground;
+            rowBg.type = Image.Type.Sliced;
+            rowBg.color = unlocked ? Color.white : new Color(0.55f, 0.55f, 0.58f, 0.9f);
 
             var layout = row.GetComponent<LayoutElement>();
             layout.minHeight = AchievementRowHeight;
@@ -655,8 +655,7 @@ namespace DockIQ.UI
             cardRt.sizeDelta = new Vector2(920f, 1400f);
             cardRt.anchoredPosition = Vector2.zero;
             var cardImg = cardGo.GetComponent<Image>();
-            cardImg.sprite = PlaceholderArt.WhiteSquare();
-            cardImg.color = PlaceholderArt.Panel;
+            UiChrome.ApplyPanel(cardImg, large: true);
 
             CreateRuntimeText(cardGo.transform, "Title", title, 40, FontStyles.Bold,
                 new Vector2(0f, 600f), new Vector2(840f, 60f), PlaceholderArt.Hazard);
@@ -747,13 +746,16 @@ namespace DockIQ.UI
             rt.anchoredPosition = anchoredPos;
             rt.sizeDelta = size;
 
+            var button = go.GetComponent<Button>();
             var image = go.GetComponent<Image>();
-            image.sprite = PlaceholderArt.WhiteSquare();
-            image.color = color;
+            UiChrome.ApplyButton(image, button, UiChrome.StyleForButtonName(name));
+            // Preserve intentional primary tint override when chrome missing.
+            if (image.sprite == null || image.sprite.name == "PlaceholderWhite")
+                image.color = color;
 
             CreateRuntimeText(go.transform, "Label", label, 28, FontStyles.Bold, Vector2.zero,
                 new Vector2(size.x - 20f, 60f), PlaceholderArt.Text);
-            return go.GetComponent<Button>();
+            return button;
         }
 
         private static void StretchFull(RectTransform rt)

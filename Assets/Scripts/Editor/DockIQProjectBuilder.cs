@@ -107,6 +107,7 @@ namespace DockIQ.Editor
             }
 
             CreateAndWireTutorialUi(safe.transform, hud);
+            UiChromeSceneApplier.ApplyToOpenGame();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("DockIQ: Tutorial UI added to existing game scene (other edits preserved).");
@@ -208,7 +209,6 @@ namespace DockIQ.Editor
 
             var storyBtn = CreateButton("StoryButton", homePanel.transform, "Story Mode",
                 new Vector2(0f, 480f), new Vector2(420f, 90f));
-            storyBtn.GetComponent<Image>().color = new Color(0.12f, 0.55f, 0.35f, 1f);
 
             var freePlayBtn = CreateButton("FreePlayButton", homePanel.transform, "Free Play",
                 new Vector2(0f, 360f), new Vector2(420f, 90f));
@@ -250,6 +250,7 @@ namespace DockIQ.Editor
             so.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            UiChromeSceneApplier.ApplyToOpenMainMenu();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("DockIQ: Main menu modes added (MenuBG / GameLogo preserved).");
@@ -806,7 +807,6 @@ namespace DockIQ.Editor
 
             var storyBtn = CreateButton("StoryButton", homePanel.transform, "Story Mode",
                 new Vector2(0f, 520f), new Vector2(420f, 90f));
-            storyBtn.GetComponent<Image>().color = new Color(0.12f, 0.55f, 0.35f, 1f);
             var freePlayBtn = CreateButton("FreePlayButton", homePanel.transform, "Free Play",
                 new Vector2(0f, 400f), new Vector2(420f, 90f));
             var achievementsBtn = CreateButton("AchievementsButton", homePanel.transform, "Achievements",
@@ -923,6 +923,7 @@ namespace DockIQ.Editor
             menuSo.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
             menuSo.ApplyModifiedPropertiesWithoutUndo();
 
+            UiChromeSceneApplier.ApplyToOpenMainMenu();
             EditorSceneManager.SaveScene(scene, $"{SceneFolder}/1_MainMenu.unity");
         }
 
@@ -1092,6 +1093,7 @@ namespace DockIQ.Editor
             sceneSo.FindProperty("_controller").objectReferenceValue = controller;
             sceneSo.ApplyModifiedPropertiesWithoutUndo();
 
+            UiChromeSceneApplier.ApplyToOpenGame();
             EditorSceneManager.SaveScene(scene, $"{SceneFolder}/2_Game.unity");
         }
 
@@ -1103,14 +1105,23 @@ namespace DockIQ.Editor
             tutorialBackdrop.gameObject.SetActive(false);
 
             var tutorialPanel = CreatePanel("TutorialPanel", safe, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(620f, 420f), PlaceholderArt.Panel).gameObject;
+                Vector2.zero, new Vector2(620f, 520f), PlaceholderArt.Panel).gameObject;
             var tutorialTitle = CreateText("TutorialTitle", tutorialPanel.transform, "Tip", 32, FontStyles.Bold,
-                new Vector2(0f, 140f), new Vector2(560f, 60f), PlaceholderArt.Hazard);
+                new Vector2(0f, 200f), new Vector2(560f, 60f), PlaceholderArt.Hazard);
+            var tutorialArtGo = new GameObject("TutorialArt", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            tutorialArtGo.transform.SetParent(tutorialPanel.transform, false);
+            var artRt = (RectTransform)tutorialArtGo.transform;
+            artRt.anchorMin = artRt.anchorMax = new Vector2(0.5f, 0.5f);
+            artRt.anchoredPosition = new Vector2(0f, 55f);
+            artRt.sizeDelta = new Vector2(180f, 180f);
+            var tutorialArt = tutorialArtGo.GetComponent<Image>();
+            tutorialArt.preserveAspect = true;
+            tutorialArt.raycastTarget = false;
+            tutorialArt.enabled = false;
             var tutorialBody = CreateText("TutorialBody", tutorialPanel.transform, "", 24, FontStyles.Normal,
-                new Vector2(0f, 10f), new Vector2(540f, 200f), PlaceholderArt.Text);
+                new Vector2(0f, -95f), new Vector2(540f, 160f), PlaceholderArt.Text);
             var gotItBtn = CreateButton("TutorialGotItButton", tutorialPanel.transform, "Got it",
-                new Vector2(0f, -145f), new Vector2(240f, 72f));
-            gotItBtn.GetComponent<Image>().color = new Color(0.12f, 0.55f, 0.35f, 1f);
+                new Vector2(0f, -200f), new Vector2(240f, 72f));
             tutorialPanel.SetActive(false);
 
             var hudSo = new SerializedObject(hud);
@@ -1119,6 +1130,7 @@ namespace DockIQ.Editor
             hudSo.FindProperty("_tutorialTitle").objectReferenceValue = tutorialTitle;
             hudSo.FindProperty("_tutorialBody").objectReferenceValue = tutorialBody;
             hudSo.FindProperty("_tutorialGotItButton").objectReferenceValue = gotItBtn;
+            hudSo.FindProperty("_tutorialArt").objectReferenceValue = tutorialArt;
             hudSo.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -1158,6 +1170,16 @@ namespace DockIQ.Editor
             var img = go.GetComponent<Image>();
             img.sprite = PlaceholderArt.WhiteSquare();
             img.color = color;
+            if (size.x >= 500f && size.y >= 280f && color.a > 0.5f)
+                UiChrome.ApplyPanel(img, large: size.y >= 700f);
+            else if (name.IndexOf("Backdrop", System.StringComparison.OrdinalIgnoreCase) >= 0 || color.a < 0.5f)
+                UiChrome.ApplyBackdrop(img);
+            else if (name == "TopBar")
+            {
+                img.sprite = UiChrome.MissionPlate;
+                img.type = Image.Type.Sliced;
+                img.color = Color.white;
+            }
             return img;
         }
 
@@ -1207,11 +1229,13 @@ namespace DockIQ.Editor
             rt.sizeDelta = size;
 
             var image = go.GetComponent<Image>();
-            image.sprite = PlaceholderArt.WhiteSquare();
-            image.color = new Color(0.15f, 0.35f, 0.55f, 1f);
+            var button = go.GetComponent<Button>();
+            UiChrome.ApplyButton(image, button, UiChrome.StyleForButtonName(name));
+            if (image.sprite == null || image.sprite.name == "PlaceholderWhite")
+                image.color = new Color(0.15f, 0.35f, 0.55f, 1f);
 
             CreateText("Label", go.transform, label, 28, FontStyles.Bold, Vector2.zero, new Vector2(size.x - 20f, 60f), PlaceholderArt.Text);
-            return go.GetComponent<Button>();
+            return button;
         }
 
         private static void StretchFull(RectTransform rt)

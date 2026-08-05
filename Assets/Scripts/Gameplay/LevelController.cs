@@ -303,7 +303,7 @@ namespace DockIQ.Gameplay
 
             var tip = _pendingTips.Dequeue();
             _tutorialActive = true;
-            if (!_hud.ShowTutorial(tip.Title, tip.Body, () => OnTutorialDismissed(tip.Id)))
+            if (!_hud.ShowTutorial(tip.Title, tip.Body, tip.Id, () => OnTutorialDismissed(tip.Id)))
                 EndTutorialFlow();
         }
 
