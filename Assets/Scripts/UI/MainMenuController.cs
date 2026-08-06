@@ -54,6 +54,7 @@ namespace DockIQ.UI
             RefreshAchievements();
             RefreshLevels();
             RefreshStoryLabels();
+            FitHowToPlayScroll();
             ShowHome();
             ProgressStore.Changed += OnProgressChanged;
         }
@@ -282,6 +283,54 @@ namespace DockIQ.UI
             SetPanel(_achievementsPanel, false);
             SetPanel(_howToPlayPanel, true);
             // Body copy is scene-authored — do not overwrite at runtime.
+            FitHowToPlayScroll();
+        }
+
+        /// <summary>
+        /// ContentSizeFitter alone collapses How To Play content to height 0 (no layout group),
+        /// so ScrollRect elastically snaps back. Drive height from the body text like Achievements.
+        /// </summary>
+        private void FitHowToPlayScroll()
+        {
+            if (_howToPlayBody == null)
+                return;
+
+            var content = _howToPlayBody.transform.parent as RectTransform;
+            if (content == null)
+                return;
+
+            var layout = content.GetComponent<VerticalLayoutGroup>();
+            if (layout == null)
+            {
+                layout = content.gameObject.AddComponent<VerticalLayoutGroup>();
+                layout.childAlignment = TextAnchor.UpperCenter;
+                layout.childControlHeight = true;
+                layout.childControlWidth = true;
+                layout.childForceExpandHeight = false;
+                layout.childForceExpandWidth = true;
+                layout.spacing = 0f;
+                layout.padding = new RectOffset(8, 8, 8, 8);
+            }
+
+            var fitter = content.GetComponent<ContentSizeFitter>();
+            if (fitter == null)
+                fitter = content.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var le = _howToPlayBody.GetComponent<LayoutElement>();
+            if (le == null)
+                le = _howToPlayBody.gameObject.AddComponent<LayoutElement>();
+
+            _howToPlayBody.ForceMeshUpdate();
+            float height = Mathf.Max(200f, _howToPlayBody.preferredHeight + 24f);
+            le.minHeight = height;
+            le.preferredHeight = height;
+
+            var bodyRt = (RectTransform)_howToPlayBody.transform;
+            bodyRt.sizeDelta = new Vector2(bodyRt.sizeDelta.x, height);
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
         }
 
         private static void SetPanel(GameObject panel, bool active)

@@ -389,18 +389,62 @@ namespace DockIQ.Editor
                 return;
 
             // Preserve manual edits — only fill when empty.
-            if (!string.IsNullOrWhiteSpace(body.text))
+            if (string.IsNullOrWhiteSpace(body.text))
+            {
+                body.text = BuildHowToPlayCopy();
+                body.alignment = TextAlignmentOptions.TopLeft;
+            }
+
+            FitHowToPlayScrollLayout(body);
+        }
+
+        /// <summary>
+        /// How To Play must size Content from the body text. ContentSizeFitter alone
+        /// (no VerticalLayoutGroup) collapses height to 0 and ScrollRect snaps back.
+        /// </summary>
+        private static void FitHowToPlayScrollLayout(TextMeshProUGUI body)
+        {
+            if (body == null)
                 return;
 
-            body.text = BuildHowToPlayCopy();
-            body.alignment = TextAlignmentOptions.TopLeft;
-            body.ForceMeshUpdate();
-            var rt = (RectTransform)body.transform;
-            float height = Mathf.Max(200f, body.preferredHeight + 24f);
-            rt.sizeDelta = new Vector2(rt.sizeDelta.x, height);
             var content = body.transform.parent as RectTransform;
-            if (content != null)
-                content.sizeDelta = new Vector2(content.sizeDelta.x, height);
+            if (content == null)
+                return;
+
+            var layout = content.GetComponent<VerticalLayoutGroup>();
+            if (layout == null)
+            {
+                layout = content.gameObject.AddComponent<VerticalLayoutGroup>();
+                layout.childAlignment = TextAnchor.UpperCenter;
+                layout.childControlHeight = true;
+                layout.childControlWidth = true;
+                layout.childForceExpandHeight = false;
+                layout.childForceExpandWidth = true;
+                layout.spacing = 0f;
+                layout.padding = new RectOffset(8, 8, 8, 8);
+            }
+
+            var fitter = content.GetComponent<ContentSizeFitter>();
+            if (fitter == null)
+                fitter = content.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            var le = body.GetComponent<LayoutElement>();
+            if (le == null)
+                le = body.gameObject.AddComponent<LayoutElement>();
+
+            body.ForceMeshUpdate();
+            float height = Mathf.Max(200f, body.preferredHeight + 24f);
+            le.minHeight = height;
+            le.preferredHeight = height;
+
+            var bodyRt = (RectTransform)body.transform;
+            bodyRt.sizeDelta = new Vector2(bodyRt.sizeDelta.x, height);
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+            EditorUtility.SetDirty(content.gameObject);
+            EditorUtility.SetDirty(body.gameObject);
         }
 
         private static string BuildHowToPlayCopy()
@@ -553,6 +597,7 @@ namespace DockIQ.Editor
             bodyRt.pivot = new Vector2(0.5f, 1f);
             bodyRt.anchoredPosition = Vector2.zero;
             bodyRt.sizeDelta = new Vector2(-20f, 2000f);
+            FitHowToPlayScrollLayout(body);
             return body;
         }
 
@@ -1452,7 +1497,8 @@ namespace DockIQ.Editor
             viewportGo.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
             viewportGo.GetComponent<Mask>().showMaskGraphic = false;
 
-            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(ContentSizeFitter));
+            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup),
+                typeof(ContentSizeFitter));
             contentGo.transform.SetParent(viewportGo.transform, false);
             var contentRt = (RectTransform)contentGo.transform;
             contentRt.anchorMin = new Vector2(0f, 1f);
@@ -1460,6 +1506,14 @@ namespace DockIQ.Editor
             contentRt.pivot = new Vector2(0.5f, 1f);
             contentRt.anchoredPosition = Vector2.zero;
             contentRt.sizeDelta = new Vector2(0f, 0f);
+            var vlg = contentGo.GetComponent<VerticalLayoutGroup>();
+            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.childControlHeight = true;
+            vlg.childControlWidth = true;
+            vlg.childForceExpandHeight = false;
+            vlg.childForceExpandWidth = true;
+            vlg.spacing = 0f;
+            vlg.padding = new RectOffset(8, 8, 8, 8);
             contentGo.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             body = CreateText("Body", contentGo.transform, "", 22, FontStyles.Normal,
@@ -1472,6 +1526,9 @@ namespace DockIQ.Editor
             bodyRt.anchoredPosition = Vector2.zero;
             bodyRt.sizeDelta = new Vector2(-20f, 2000f);
             body.enableAutoSizing = false;
+            var bodyLe = body.gameObject.AddComponent<LayoutElement>();
+            bodyLe.minHeight = 200f;
+            bodyLe.preferredHeight = 2000f;
 
             scroll.content = contentRt;
             scroll.viewport = viewportRt;
