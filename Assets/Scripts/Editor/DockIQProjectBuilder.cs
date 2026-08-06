@@ -243,17 +243,124 @@ namespace DockIQ.Editor
             so.FindProperty("_playBackButton").objectReferenceValue = playBack;
             so.FindProperty("_achievementsPanel").objectReferenceValue = achievementsPanel;
             so.FindProperty("_achievementsBackButton").objectReferenceValue = achievementsBack;
-            so.FindProperty("_achievementsBody").objectReferenceValue = achievementsBody;
             AssignMenuAchievementIcons(so);
             so.FindProperty("_howToPlayPanel").objectReferenceValue = howToPanel;
             so.FindProperty("_howToPlayBackButton").objectReferenceValue = howToBack;
             so.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
             so.ApplyModifiedPropertiesWithoutUndo();
 
+            WireMenuAchievementList(menu, achievementsPanel, achievementsBody);
+            SeedHowToPlayBody(howToBody);
             UiChromeSceneApplier.ApplyToOpenMainMenu();
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             Debug.Log("DockIQ: Main menu modes added (MenuBG / GameLogo preserved).");
+        }
+
+        /// <summary>
+        /// Bakes achievement rows + How To Play copy into the existing main menu scene
+        /// without wiping manual layout edits. Safe to re-run — skips rows that already exist.
+        /// </summary>
+        [MenuItem("DockIQ/Ensure Menu UI In Scene")]
+        public static void EnsureMenuUiInScene()
+        {
+            string scenePath = SceneFolder + "/1_MainMenu.unity";
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath) == null)
+            {
+                Debug.LogError($"DockIQ: Missing scene {scenePath}. Run Build Game Content first.");
+                return;
+            }
+
+            var active = EditorSceneManager.GetActiveScene();
+            bool openedAdditively = false;
+            var scene = default(UnityEngine.SceneManagement.Scene);
+
+            for (int i = 0; i < EditorSceneManager.sceneCount; i++)
+            {
+                var loaded = EditorSceneManager.GetSceneAt(i);
+                if (loaded.path == scenePath)
+                {
+                    scene = loaded;
+                    break;
+                }
+            }
+
+            if (!scene.IsValid())
+            {
+                scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
+                openedAdditively = true;
+            }
+
+            var menu = FindMenuControllerInScene(scene);
+            if (menu == null)
+            {
+                Debug.LogError("DockIQ: MainMenuController not found in main menu scene.");
+                if (openedAdditively)
+                    EditorSceneManager.CloseScene(scene, true);
+                return;
+            }
+
+            var so = new SerializedObject(menu);
+            var achievementsPanel = so.FindProperty("_achievementsPanel").objectReferenceValue as GameObject
+                                    ?? FindInSceneIncludingInactive(scene, "Panel_Achievements");
+            var howToPanel = so.FindProperty("_howToPlayPanel").objectReferenceValue as GameObject
+                             ?? FindInSceneIncludingInactive(scene, "Panel_HowToPlay");
+
+            if (achievementsPanel == null)
+            {
+                Debug.LogError("DockIQ: Panel_Achievements missing. Run Ensure Main Menu Modes first.");
+                if (openedAdditively)
+                    EditorSceneManager.CloseScene(scene, true);
+                return;
+            }
+
+            var legacyBody = FindBodyUnderPanel(achievementsPanel.transform);
+            WireMenuAchievementList(menu, achievementsPanel, legacyBody);
+
+            if (howToPanel != null)
+            {
+                var howToBody = so.FindProperty("_howToPlayBody").objectReferenceValue as TextMeshProUGUI
+                                ?? EnsureHowToPlayBody(howToPanel);
+                if (howToBody != null)
+                {
+                    so.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
+                    SeedHowToPlayBody(howToBody);
+                }
+
+                if (so.FindProperty("_howToPlayPanel").objectReferenceValue == null)
+                    so.FindProperty("_howToPlayPanel").objectReferenceValue = howToPanel;
+            }
+
+            if (so.FindProperty("_achievementsPanel").objectReferenceValue == null)
+                so.FindProperty("_achievementsPanel").objectReferenceValue = achievementsPanel;
+
+            AssignMenuAchievementIcons(so);
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            UiChromeSceneApplier.ApplyToOpenMainMenu();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+
+            if (openedAdditively && active.IsValid())
+            {
+                EditorSceneManager.SetActiveScene(active);
+                EditorSceneManager.CloseScene(scene, true);
+            }
+
+            Debug.Log("DockIQ: Menu UI ensured in scene (achievement rows + How To Play). Edit freely in the Inspector.");
+        }
+
+        private static MainMenuController FindMenuControllerInScene(UnityEngine.SceneManagement.Scene scene)
+        {
+            var roots = scene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length; i++)
+            {
+                var menu = roots[i].GetComponentInChildren<MainMenuController>(true);
+                if (menu != null)
+                    return menu;
+            }
+
+            return null;
         }
 
         private static void AssignMenuAchievementIcons(SerializedObject menuSo)
@@ -261,6 +368,368 @@ namespace DockIQ.Editor
             var catalog = EnsureBoardArtCatalog();
             menuSo.FindProperty("_boardArt").objectReferenceValue = catalog;
             AssignSortedSprites(menuSo.FindProperty("_achievementIcons"), AchievementsTexturePath);
+        }
+
+        private static TextMeshProUGUI FindBodyUnderPanel(Transform panel)
+        {
+            if (panel == null)
+                return null;
+
+            var scrollBody = panel.Find("Card/BodyScroll/Viewport/Content/Body");
+            if (scrollBody != null)
+                return scrollBody.GetComponent<TextMeshProUGUI>();
+
+            var body = panel.Find("Card/Body");
+            return body != null ? body.GetComponent<TextMeshProUGUI>() : null;
+        }
+
+        private static void SeedHowToPlayBody(TextMeshProUGUI body)
+        {
+            if (body == null)
+                return;
+
+            // Preserve manual edits — only fill when empty.
+            if (!string.IsNullOrWhiteSpace(body.text))
+                return;
+
+            body.text = BuildHowToPlayCopy();
+            body.alignment = TextAlignmentOptions.TopLeft;
+            body.ForceMeshUpdate();
+            var rt = (RectTransform)body.transform;
+            float height = Mathf.Max(200f, body.preferredHeight + 24f);
+            rt.sizeDelta = new Vector2(rt.sizeDelta.x, height);
+            var content = body.transform.parent as RectTransform;
+            if (content != null)
+                content.sizeDelta = new Vector2(content.sizeDelta.x, height);
+        }
+
+        private static string BuildHowToPlayCopy()
+        {
+            var sb = new System.Text.StringBuilder(1024);
+            sb.AppendLine("Robots drive the rails on their own. Tap devices to guide the highlighted rescue robot to the named dock before time runs out.");
+            sb.AppendLine();
+            sb.AppendLine("Story advances the campaign. Free Play replays unlocked levels without advancing Story.");
+            sb.AppendLine();
+
+            for (int i = 0; i < TutorialTipCatalog.AllTips.Count; i++)
+            {
+                var tip = TutorialTipCatalog.AllTips[i];
+                if (tip.Id == TutorialTipCatalog.MissionBasics)
+                    continue;
+
+                sb.AppendLine($"• {tip.Title} — {tip.Body}");
+                sb.AppendLine();
+            }
+
+            return sb.ToString().TrimEnd();
+        }
+
+        private static void WireMenuAchievementList(MainMenuController menu, GameObject achievementsPanel,
+            TextMeshProUGUI legacyBody)
+        {
+            if (menu == null || achievementsPanel == null)
+                return;
+
+            var content = EnsureAchievementsScrollContent(achievementsPanel.transform);
+            if (content == null)
+            {
+                Debug.LogError("DockIQ: Could not create Achievements content host.");
+                return;
+            }
+
+            EnsureAchievementContentLayout(content);
+
+            if (legacyBody != null)
+                legacyBody.gameObject.SetActive(false);
+
+            // Hide legacy flat Body if still under Card (non-scroll layouts).
+            var flatBody = achievementsPanel.transform.Find("Card/Body");
+            if (flatBody != null)
+                flatBody.gameObject.SetActive(false);
+
+            var summary = EnsureAchievementSummary(content);
+            var icons = LoadAchievementSpritesForMenu();
+            var rows = EnsureAchievementRows(content, icons);
+
+            var so = new SerializedObject(menu);
+            so.FindProperty("_achievementsContent").objectReferenceValue = content;
+            so.FindProperty("_achievementsSummary").objectReferenceValue = summary;
+            var rowsProp = so.FindProperty("_achievementRows");
+            rowsProp.arraySize = rows.Count;
+            for (int i = 0; i < rows.Count; i++)
+                rowsProp.GetArrayElementAtIndex(i).objectReferenceValue = rows[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Ensures Card/BodyScroll/Viewport/Content exists under the achievements panel,
+        /// upgrading older flat Card/Body layouts in-place without destroying the Card.
+        /// </summary>
+        private static RectTransform EnsureAchievementsScrollContent(Transform achievementsPanel)
+        {
+            var contentTf = achievementsPanel.Find("Card/BodyScroll/Viewport/Content");
+            if (contentTf != null)
+                return (RectTransform)contentTf;
+
+            var card = achievementsPanel.Find("Card");
+            if (card == null)
+                return null;
+
+            var scrollGo = new GameObject("BodyScroll", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image),
+                typeof(ScrollRect));
+            scrollGo.transform.SetParent(card, false);
+            var scrollRt = (RectTransform)scrollGo.transform;
+            scrollRt.anchorMin = scrollRt.anchorMax = new Vector2(0.5f, 0.5f);
+            scrollRt.anchoredPosition = new Vector2(0f, 40f);
+            scrollRt.sizeDelta = new Vector2(840f, 1000f);
+            scrollGo.GetComponent<Image>().color = new Color(0.05f, 0.09f, 0.14f, 0.65f);
+            var scroll = scrollGo.GetComponent<ScrollRect>();
+            scroll.horizontal = false;
+            scroll.vertical = true;
+            scroll.movementType = ScrollRect.MovementType.Elastic;
+            scroll.scrollSensitivity = 40f;
+
+            var viewportGo = new GameObject("Viewport", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image),
+                typeof(Mask));
+            viewportGo.transform.SetParent(scrollGo.transform, false);
+            var viewportRt = (RectTransform)viewportGo.transform;
+            StretchFull(viewportRt);
+            viewportRt.offsetMin = new Vector2(16f, 16f);
+            viewportRt.offsetMax = new Vector2(-16f, -16f);
+            viewportGo.GetComponent<Image>().color = new Color(1f, 1f, 1f, 0.01f);
+            viewportGo.GetComponent<Mask>().showMaskGraphic = false;
+
+            var contentGo = new GameObject("Content", typeof(RectTransform), typeof(ContentSizeFitter));
+            contentGo.transform.SetParent(viewportGo.transform, false);
+            var contentRt = (RectTransform)contentGo.transform;
+            contentRt.anchorMin = new Vector2(0f, 1f);
+            contentRt.anchorMax = new Vector2(1f, 1f);
+            contentRt.pivot = new Vector2(0.5f, 1f);
+            contentRt.anchoredPosition = Vector2.zero;
+            contentRt.sizeDelta = Vector2.zero;
+            contentGo.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            scroll.content = contentRt;
+            scroll.viewport = viewportRt;
+
+            // Keep BackButton at bottom of sibling order.
+            var back = card.Find("BackButton");
+            if (back != null)
+                back.SetAsLastSibling();
+
+            return contentRt;
+        }
+
+        private static TextMeshProUGUI EnsureHowToPlayBody(GameObject howToPanel)
+        {
+            if (howToPanel == null)
+                return null;
+
+            var existing = FindBodyUnderPanel(howToPanel.transform);
+            if (existing != null)
+                return existing;
+
+            var card = howToPanel.transform.Find("Card");
+            if (card == null)
+                return null;
+
+            // Prefer scroll body for long copy.
+            var contentTf = howToPanel.transform.Find("Card/BodyScroll/Viewport/Content");
+            if (contentTf == null)
+            {
+                EnsureAchievementsScrollContent(howToPanel.transform);
+                contentTf = howToPanel.transform.Find("Card/BodyScroll/Viewport/Content");
+            }
+
+            if (contentTf == null)
+                return null;
+
+            var body = CreateText("Body", contentTf, "", 22, FontStyles.Normal,
+                Vector2.zero, new Vector2(780f, 2000f), PlaceholderArt.Text);
+            body.alignment = TextAlignmentOptions.TopLeft;
+            var bodyRt = (RectTransform)body.transform;
+            bodyRt.anchorMin = new Vector2(0f, 1f);
+            bodyRt.anchorMax = new Vector2(1f, 1f);
+            bodyRt.pivot = new Vector2(0.5f, 1f);
+            bodyRt.anchoredPosition = Vector2.zero;
+            bodyRt.sizeDelta = new Vector2(-20f, 2000f);
+            return body;
+        }
+
+        private static void EnsureAchievementContentLayout(RectTransform content)
+        {
+            var layout = content.GetComponent<VerticalLayoutGroup>();
+            if (layout == null)
+                layout = content.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.childAlignment = TextAnchor.UpperCenter;
+            layout.childControlHeight = true;
+            layout.childControlWidth = true;
+            layout.childForceExpandHeight = false;
+            layout.childForceExpandWidth = true;
+            layout.spacing = 12f;
+            layout.padding = new RectOffset(8, 8, 8, 8);
+
+            var fitter = content.GetComponent<ContentSizeFitter>();
+            if (fitter == null)
+                fitter = content.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        }
+
+        private static TextMeshProUGUI EnsureAchievementSummary(RectTransform content)
+        {
+            var existing = content.Find("Summary");
+            if (existing != null)
+                return existing.GetComponent<TextMeshProUGUI>();
+
+            var summary = CreateText("Summary", content, "Unlocked  0/9", 26, FontStyles.Bold,
+                Vector2.zero, new Vector2(780f, 40f), PlaceholderArt.Hazard);
+            summary.alignment = TextAlignmentOptions.Center;
+            var summaryRt = (RectTransform)summary.transform;
+            summaryRt.anchorMin = new Vector2(0f, 1f);
+            summaryRt.anchorMax = new Vector2(1f, 1f);
+            summaryRt.pivot = new Vector2(0.5f, 1f);
+            summaryRt.sizeDelta = new Vector2(0f, 44f);
+            var le = summary.gameObject.AddComponent<LayoutElement>();
+            le.minHeight = 44f;
+            le.preferredHeight = 44f;
+            summary.transform.SetAsFirstSibling();
+            return summary;
+        }
+
+        private static List<AchievementRowView> EnsureAchievementRows(RectTransform content, Sprite[] icons)
+        {
+            const float rowHeight = 150f;
+            const float iconSize = 120f;
+            var rows = new List<AchievementRowView>(AchievementCatalog.All.Count);
+
+            for (int i = 0; i < AchievementCatalog.All.Count; i++)
+            {
+                var def = AchievementCatalog.All[i];
+                string rowName = $"Achievement_{def.Id}";
+                var existing = content.Find(rowName);
+                AchievementRowView view;
+                bool created = false;
+                if (existing != null)
+                {
+                    view = existing.GetComponent<AchievementRowView>();
+                    if (view == null)
+                        view = existing.gameObject.AddComponent<AchievementRowView>();
+                    WireAchievementRowRefs(view, existing);
+                }
+                else
+                {
+                    created = true;
+                    var row = new GameObject(rowName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image),
+                        typeof(LayoutElement), typeof(AchievementRowView));
+                    row.transform.SetParent(content, false);
+                    var rowRt = (RectTransform)row.transform;
+                    rowRt.anchorMin = new Vector2(0f, 1f);
+                    rowRt.anchorMax = new Vector2(1f, 1f);
+                    rowRt.pivot = new Vector2(0.5f, 1f);
+                    rowRt.sizeDelta = new Vector2(0f, rowHeight);
+
+                    var rowBg = row.GetComponent<Image>();
+                    rowBg.sprite = UiChrome.RowBackground;
+                    rowBg.type = Image.Type.Sliced;
+                    rowBg.color = new Color(0.55f, 0.55f, 0.58f, 0.9f);
+
+                    var layout = row.GetComponent<LayoutElement>();
+                    layout.minHeight = rowHeight;
+                    layout.preferredHeight = rowHeight;
+                    layout.flexibleWidth = 1f;
+
+                    var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                    iconGo.transform.SetParent(row.transform, false);
+                    var iconRt = (RectTransform)iconGo.transform;
+                    iconRt.anchorMin = iconRt.anchorMax = new Vector2(0f, 0.5f);
+                    iconRt.pivot = new Vector2(0f, 0.5f);
+                    iconRt.anchoredPosition = new Vector2(16f, 0f);
+                    iconRt.sizeDelta = new Vector2(iconSize, iconSize);
+                    var iconImg = iconGo.GetComponent<Image>();
+                    iconImg.preserveAspect = true;
+                    iconImg.raycastTarget = false;
+                    iconImg.color = new Color(0.35f, 0.35f, 0.38f, 0.85f);
+
+                    var title = CreateText("Title", row.transform, def.Title, 26, FontStyles.Bold,
+                        new Vector2(152f, 28f), new Vector2(620f, 36f), new Color(0.65f, 0.68f, 0.72f, 1f));
+                    title.alignment = TextAlignmentOptions.Left;
+                    var titleRt = (RectTransform)title.transform;
+                    titleRt.anchorMin = titleRt.anchorMax = new Vector2(0f, 0.5f);
+                    titleRt.pivot = new Vector2(0f, 0.5f);
+
+                    var body = CreateText("Body", row.transform, def.LockedHint, 20, FontStyles.Normal,
+                        new Vector2(152f, -22f), new Vector2(620f, 70f), new Color(0.55f, 0.58f, 0.62f, 1f));
+                    body.alignment = TextAlignmentOptions.TopLeft;
+                    var bodyRt = (RectTransform)body.transform;
+                    bodyRt.anchorMin = bodyRt.anchorMax = new Vector2(0f, 0.5f);
+                    bodyRt.pivot = new Vector2(0f, 0.5f);
+
+                    view = row.GetComponent<AchievementRowView>();
+                    WireAchievementRowRefs(view, row.transform);
+                }
+
+                Sprite icon = icons != null && i < icons.Length ? icons[i] : null;
+                if (created || string.IsNullOrEmpty(view.AchievementId))
+                {
+                    var viewSo = new SerializedObject(view);
+                    viewSo.FindProperty("_achievementId").stringValue = def.Id;
+                    viewSo.FindProperty("_unlockedBody").stringValue = def.Description;
+                    viewSo.FindProperty("_lockedBody").stringValue = def.LockedHint;
+                    viewSo.ApplyModifiedPropertiesWithoutUndo();
+
+                    view.Configure(def.Id, def.Title, def.Description, def.LockedHint, icon);
+                    view.SetUnlocked(false);
+                }
+                EditorUtility.SetDirty(view);
+                rows.Add(view);
+            }
+
+            // Keep Summary first, then rows in catalog order.
+            var summary = content.Find("Summary");
+            if (summary != null)
+                summary.SetAsFirstSibling();
+            for (int i = 0; i < rows.Count; i++)
+                rows[i].transform.SetSiblingIndex(i + (summary != null ? 1 : 0));
+
+            return rows;
+        }
+
+        private static void WireAchievementRowRefs(AchievementRowView view, Transform row)
+        {
+            if (view == null || row == null)
+                return;
+
+            var viewSo = new SerializedObject(view);
+            if (viewSo.FindProperty("_background").objectReferenceValue == null)
+                viewSo.FindProperty("_background").objectReferenceValue = row.GetComponent<Image>();
+
+            var icon = row.Find("Icon");
+            if (viewSo.FindProperty("_icon").objectReferenceValue == null && icon != null)
+                viewSo.FindProperty("_icon").objectReferenceValue = icon.GetComponent<Image>();
+
+            var title = row.Find("Title");
+            if (viewSo.FindProperty("_title").objectReferenceValue == null && title != null)
+                viewSo.FindProperty("_title").objectReferenceValue = title.GetComponent<TextMeshProUGUI>();
+
+            var body = row.Find("Body");
+            if (viewSo.FindProperty("_body").objectReferenceValue == null && body != null)
+                viewSo.FindProperty("_body").objectReferenceValue = body.GetComponent<TextMeshProUGUI>();
+
+            viewSo.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static Sprite[] LoadAchievementSpritesForMenu()
+        {
+            var assets = AssetDatabase.LoadAllAssetsAtPath(AchievementsTexturePath);
+            var list = new List<Sprite>(assets.Length);
+            for (int i = 0; i < assets.Length; i++)
+            {
+                if (assets[i] is Sprite sprite)
+                    list.Add(sprite);
+            }
+
+            list.Sort((a, b) => SliceIndex(a.name).CompareTo(SliceIndex(b.name)));
+            return list.ToArray();
         }
 
         private static GameObject FindInSceneIncludingInactive(UnityEngine.SceneManagement.Scene scene, string name)
@@ -916,12 +1385,14 @@ namespace DockIQ.Editor
                 menuSo.FindProperty("_levelButtons").GetArrayElementAtIndex(i).objectReferenceValue = levelViews[i];
             menuSo.FindProperty("_achievementsPanel").objectReferenceValue = achievementsPanel;
             menuSo.FindProperty("_achievementsBackButton").objectReferenceValue = achievementsBack;
-            menuSo.FindProperty("_achievementsBody").objectReferenceValue = achievementsBody;
             AssignMenuAchievementIcons(menuSo);
             menuSo.FindProperty("_howToPlayPanel").objectReferenceValue = howToPanel;
             menuSo.FindProperty("_howToPlayBackButton").objectReferenceValue = howToBack;
             menuSo.FindProperty("_howToPlayBody").objectReferenceValue = howToBody;
             menuSo.ApplyModifiedPropertiesWithoutUndo();
+
+            WireMenuAchievementList(menu, achievementsPanel, achievementsBody);
+            SeedHowToPlayBody(howToBody);
 
             UiChromeSceneApplier.ApplyToOpenMainMenu();
             EditorSceneManager.SaveScene(scene, $"{SceneFolder}/1_MainMenu.unity");
