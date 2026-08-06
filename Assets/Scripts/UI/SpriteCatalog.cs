@@ -3,7 +3,7 @@ using UnityEngine;
 namespace DockIQ.UI
 {
     /// <summary>
-    /// Board art lookups. Prefers a scene-bound <see cref="BoardArtCatalog"/>, then Resources.
+    /// Board art lookups via a scene-bound <see cref="BoardArtCatalog"/> (<c>Assets/UI</c>).
     /// </summary>
     public static class SpriteCatalog
     {
@@ -11,32 +11,25 @@ namespace DockIQ.UI
 
         public static void Bind(BoardArtCatalog boardArt) => _boardArt = boardArt;
 
-        public static Sprite Load(string resourcesPath)
-        {
-            if (string.IsNullOrEmpty(resourcesPath))
-                return null;
-            return Resources.Load<Sprite>(resourcesPath);
-        }
-
         public static Sprite TrackOrFallback() =>
             _boardArt != null && _boardArt.Track != null
                 ? _boardArt.Track
-                : Load("Sprites/Belts/belt_straight") ?? Load("Sprites/Tracks/track") ?? PlaceholderArt.IsoDiamond();
+                : PlaceholderArt.IsoDiamond();
 
         public static Sprite SpawnOrFallback() =>
             _boardArt != null && _boardArt.Spawn != null
                 ? _boardArt.Spawn
-                : Load("Sprites/Belts/spawn_pad") ?? TrackOrFallback();
+                : TrackOrFallback();
 
         public static Sprite SwitchOrFallback() =>
             _boardArt != null && _boardArt.Switch != null
                 ? _boardArt.Switch
-                : Load("Sprites/Devices/switch") ?? PlaceholderArt.IsoDiamond();
+                : PlaceholderArt.IsoDiamond();
 
         public static Sprite RotatorOrFallback() =>
             _boardArt != null && _boardArt.Rotator != null
                 ? _boardArt.Rotator
-                : Load("Sprites/Devices/rotator") ?? PlaceholderArt.IsoDiamond();
+                : PlaceholderArt.IsoDiamond();
 
         public static Sprite RotatorForModeOrFallback(int mode)
         {
@@ -51,12 +44,7 @@ namespace DockIQ.UI
                     return _boardArt.Rotator;
             }
 
-            return normalized switch
-            {
-                1 => Load("Sprites/Devices/rotator_left"),
-                2 => Load("Sprites/Devices/rotator_right"),
-                _ => Load("Sprites/Devices/rotator_straight")
-            } ?? RotatorOrFallback();
+            return RotatorOrFallback();
         }
 
         public static Sprite BridgeOrFallback(bool open)
@@ -66,36 +54,33 @@ namespace DockIQ.UI
                 Sprite art = open ? _boardArt.BridgeOpen : _boardArt.BridgeClosed;
                 if (art != null)
                     return art;
-                // Prefer closed as generic bridge if only one state is missing.
                 art = _boardArt.BridgeClosed ?? _boardArt.BridgeOpen;
                 if (art != null)
                     return art;
             }
 
-            return Load(open ? "Sprites/Devices/bridge_open" : "Sprites/Devices/bridge_closed")
-                   ?? Load("Sprites/Devices/bridge")
-                   ?? PlaceholderArt.IsoDiamond();
+            return PlaceholderArt.IsoDiamond();
         }
 
         public static Sprite LiftOrFallback() =>
             _boardArt != null && _boardArt.Lift != null
                 ? _boardArt.Lift
-                : Load("Sprites/Devices/lift") ?? PlaceholderArt.IsoDiamond();
+                : PlaceholderArt.IsoDiamond();
 
         public static Sprite ElevatorOrFallback() =>
             _boardArt != null && _boardArt.Elevator != null
                 ? _boardArt.Elevator
-                : Load("Sprites/Devices/elevator") ?? PlaceholderArt.IsoDiamond();
+                : PlaceholderArt.IsoDiamond();
 
         public static Sprite ReflectorOrFallback() =>
             _boardArt != null && _boardArt.Reflector != null
                 ? _boardArt.Reflector
-                : Load("Sprites/Devices/reflector") ?? PlaceholderArt.IsoDiamond();
+                : PlaceholderArt.IsoDiamond();
 
         public static Sprite ObstacleOrFallback() =>
             _boardArt != null && _boardArt.Obstacle != null
                 ? _boardArt.Obstacle
-                : Load("Sprites/Devices/obstacle") ?? PlaceholderArt.IsoDiamond();
+                : PlaceholderArt.IsoDiamond();
 
         public static Sprite LiftableOrFallback(bool raised)
         {
@@ -109,25 +94,23 @@ namespace DockIQ.UI
                     return art;
             }
 
-            return Load(raised ? "Sprites/Devices/liftable_up" : "Sprites/Devices/liftable_down")
-                   ?? Load("Sprites/Devices/liftable")
-                   ?? PlaceholderArt.IsoDiamond();
+            return PlaceholderArt.IsoDiamond();
         }
 
         public static Sprite DirectionArrowOrFallback() =>
             _boardArt != null && _boardArt.DirectionArrow != null
                 ? _boardArt.DirectionArrow
-                : Load("Sprites/Belts/direction_arrow") ?? PlaceholderArt.WhiteSquare();
+                : PlaceholderArt.WhiteSquare();
 
         public static Sprite PathWaypointOrFallback() =>
             _boardArt != null && _boardArt.PathWaypoint != null
                 ? _boardArt.PathWaypoint
-                : Load("Sprites/Belts/path_waypoint") ?? PlaceholderArt.Circle();
+                : PlaceholderArt.Circle();
 
         public static Sprite SelectionRingOrFallback() =>
             _boardArt != null && _boardArt.SelectionRing != null
                 ? _boardArt.SelectionRing
-                : Load("Sprites/Robots/selection_ring") ?? PlaceholderArt.WhiteSquare();
+                : PlaceholderArt.WhiteSquare();
 
         public static Sprite RobotOrFallback(bool rescue)
         {
@@ -140,15 +123,11 @@ namespace DockIQ.UI
                     return _boardArt.Robot;
             }
 
-            return Load(rescue ? "Sprites/Parcels/parcel_vip" : "Sprites/Parcels/parcel")
-                   ?? Load(rescue ? "Sprites/Robots/robot_rescue" : "Sprites/Robots/robot")
-                   ?? PlaceholderArt.RobotBody();
+            return PlaceholderArt.RobotBody();
         }
 
         public static Sprite DockOrFallback(int dockId = 1) =>
-            GateForDockId(dockId)
-            ?? Load("Sprites/Docks/dock")
-            ?? PlaceholderArt.IsoDiamond();
+            GateForDockId(dockId) ?? PlaceholderArt.IsoDiamond();
 
         /// <summary>Level cargo sprite (Parcels_0 = level 1) from the bound board art catalog.</summary>
         public static Sprite ParcelForLevel(int levelId) =>

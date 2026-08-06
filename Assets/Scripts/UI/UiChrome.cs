@@ -1,11 +1,10 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace DockIQ.UI
 {
     /// <summary>
-    /// Production UI chrome loaded from <c>Resources/UI/</c>.
+    /// Production UI chrome from <see cref="UiChromeCatalog"/> (<c>Assets/UI</c>).
     /// Falls back to <see cref="PlaceholderArt"/> when a sprite is missing.
     /// </summary>
     public static class UiChrome
@@ -19,49 +18,53 @@ namespace DockIQ.UI
             Pause
         }
 
-        private static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>(64);
-        private static bool _loggedMissing;
+        private const string CatalogPath = "Assets/UI/UiChromeCatalog.asset";
+        private static UiChromeCatalog _catalog;
+
+        public static void Bind(UiChromeCatalog catalog) => _catalog = catalog;
+
+        public static UiChromeCatalog Catalog
+        {
+            get
+            {
+                if (_catalog == null)
+                    TryAutoBind();
+                return _catalog;
+            }
+        }
 
         public static Sprite Button(ButtonStyle style, bool pressed = false, bool disabled = false)
         {
-            string state = disabled ? "disabled" : pressed ? "pressed" : "normal";
-            string key = style switch
-            {
-                ButtonStyle.Primary => $"UI/Chrome/ui_btn_primary_{state}",
-                ButtonStyle.Danger => $"UI/Chrome/ui_btn_danger_{state}",
-                ButtonStyle.Back => $"UI/Chrome/ui_btn_back_{state}",
-                ButtonStyle.Pause => $"UI/Chrome/ui_btn_pause_{state}",
-                _ => $"UI/Chrome/ui_btn_secondary_{state}"
-            };
-            return Load(key) ?? PlaceholderArt.WhiteSquare();
+            var catalog = Catalog;
+            Sprite sprite = catalog != null ? catalog.Button(style, pressed, disabled) : null;
+            return sprite != null ? sprite : PlaceholderArt.WhiteSquare();
         }
 
-        public static Sprite PanelLarge => Load("UI/Chrome/ui_panel_modal_large") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite PanelSmall => Load("UI/Chrome/ui_panel_modal_small") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite Backdrop => Load("UI/Chrome/ui_panel_backdrop") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite MissionPlate => Load("UI/Chrome/ui_hud_mission_plate") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite TimerOk => Load("UI/Chrome/ui_hud_timer_ok") ?? PlaceholderArt.Circle();
-        public static Sprite TimerUrgent => Load("UI/Chrome/ui_hud_timer_urgent") ?? PlaceholderArt.Circle();
-        public static Sprite RowBackground => Load("UI/Chrome/ui_row_bg") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite ProgressTrack => Load("UI/Chrome/ui_progress_track") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite ProgressFill => Load("UI/Chrome/ui_progress_fill") ?? PlaceholderArt.WhiteSquare();
+        public static Sprite PanelLarge => Catalog?.Panel ?? PlaceholderArt.WhiteSquare();
+        public static Sprite PanelSmall => Catalog?.Panel ?? PlaceholderArt.WhiteSquare();
+        public static Sprite Backdrop => Catalog?.Backdrop ?? Catalog?.Panel ?? PlaceholderArt.WhiteSquare();
+        public static Sprite MissionPlate => Catalog?.MissionPlate ?? Catalog?.SecondaryNormal ?? PlaceholderArt.WhiteSquare();
+        public static Sprite TimerOk => null;
+        public static Sprite TimerUrgent => null;
+        public static Sprite RowBackground => Catalog?.RowBackground ?? PlaceholderArt.WhiteSquare();
+        public static Sprite ProgressTrack => PlaceholderArt.WhiteSquare();
+        public static Sprite ProgressFill => PlaceholderArt.WhiteSquare();
 
-        public static Sprite LevelUnlocked => Load("UI/Chrome/ui_level_unlocked") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite LevelLocked => Load("UI/Chrome/ui_level_locked") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite LevelSelected => Load("UI/Chrome/ui_level_selected") ?? PlaceholderArt.WhiteSquare();
-        public static Sprite LevelCompleted => Load("UI/Chrome/ui_level_completed") ?? PlaceholderArt.WhiteSquare();
+        public static Sprite LevelUnlocked => Catalog?.LevelUnlocked ?? PlaceholderArt.WhiteSquare();
+        public static Sprite LevelLocked => Catalog?.LevelLocked ?? PlaceholderArt.WhiteSquare();
+        public static Sprite LevelSelected => Catalog?.LevelSelected ?? PlaceholderArt.WhiteSquare();
+        public static Sprite LevelCompleted => Catalog?.LevelCompleted ?? PlaceholderArt.WhiteSquare();
 
-        public static Sprite ResultSuccess => Load("UI/Results/ui_result_success");
-        public static Sprite ResultFail => Load("UI/Results/ui_result_fail");
+        public static Sprite ResultSuccess => null;
+        public static Sprite ResultFail => null;
 
-        public static Sprite Icon(string name) => Load($"UI/Icons/{name}");
+        public static Sprite GameLogo => Catalog?.GameLogo;
 
-        public static Sprite Tutorial(string tipId)
-        {
-            if (string.IsNullOrEmpty(tipId))
-                return null;
-            return Load($"UI/Tutorials/tut_{tipId}");
-        }
+        /// <summary>Optional icon lookup — no Resources pack; returns null unless catalog grows icons.</summary>
+        public static Sprite Icon(string name) => null;
+
+        /// <summary>Optional tutorial art — not shipped under Assets/UI yet.</summary>
+        public static Sprite Tutorial(string tipId) => null;
 
         public static void ApplyButton(Image image, Button button, ButtonStyle style)
         {
@@ -185,24 +188,11 @@ namespace DockIQ.UI
             }
         }
 
-        private static Sprite Load(string resourcesPath)
+        private static void TryAutoBind()
         {
-            if (string.IsNullOrEmpty(resourcesPath))
-                return null;
-
-            if (Cache.TryGetValue(resourcesPath, out var cached) && cached != null)
-                return cached;
-
-            var sprite = Resources.Load<Sprite>(resourcesPath);
-            if (sprite == null && !_loggedMissing)
-            {
-                // One soft notice — Unity may still be importing on first open.
-                Debug.LogWarning($"UiChrome: missing sprite Resources/{resourcesPath} (using placeholder until import).");
-                _loggedMissing = true;
-            }
-
-            Cache[resourcesPath] = sprite;
-            return sprite;
+#if UNITY_EDITOR
+            _catalog = UnityEditor.AssetDatabase.LoadAssetAtPath<UiChromeCatalog>(CatalogPath);
+#endif
         }
     }
 }

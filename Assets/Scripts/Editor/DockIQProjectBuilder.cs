@@ -367,6 +367,9 @@ namespace DockIQ.Editor
         {
             var catalog = EnsureBoardArtCatalog();
             menuSo.FindProperty("_boardArt").objectReferenceValue = catalog;
+            var chromeProp = menuSo.FindProperty("_uiChrome");
+            if (chromeProp != null)
+                chromeProp.objectReferenceValue = EnsureUiChromeCatalog();
             AssignSortedSprites(menuSo.FindProperty("_achievementIcons"), AchievementsTexturePath);
         }
 
@@ -817,6 +820,7 @@ namespace DockIQ.Editor
             }
 
             var catalog = EnsureBoardArtCatalog();
+            var chrome = EnsureUiChromeCatalog();
             var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
             var controller = UnityEngine.Object.FindFirstObjectByType<LevelController>();
             if (controller == null)
@@ -833,17 +837,30 @@ namespace DockIQ.Editor
                 return;
             }
 
-            if (artProp.objectReferenceValue == catalog)
-            {
-                Debug.Log("DockIQ: Board art already assigned — refreshed sprite arrays on catalog.");
-            }
-            else
+            bool dirty = false;
+            if (artProp.objectReferenceValue != catalog)
             {
                 artProp.objectReferenceValue = catalog;
+                dirty = true;
+            }
+
+            var chromeProp = so.FindProperty("_uiChrome");
+            if (chromeProp != null && chromeProp.objectReferenceValue != chrome)
+            {
+                chromeProp.objectReferenceValue = chrome;
+                dirty = true;
+            }
+
+            if (dirty)
+            {
                 so.ApplyModifiedPropertiesWithoutUndo();
                 EditorSceneManager.MarkSceneDirty(scene);
                 EditorSceneManager.SaveScene(scene);
-                Debug.Log("DockIQ: Board art catalog assigned to LevelController.");
+                Debug.Log("DockIQ: Board/UI art catalogs assigned to LevelController.");
+            }
+            else
+            {
+                Debug.Log("DockIQ: Board art already assigned — refreshed sprite arrays on catalog.");
             }
 
             RemoveLegacyUiResources();
@@ -854,7 +871,7 @@ namespace DockIQ.Editor
             try
             {
                 EnsureFolders();
-                EnsureLogoResource();
+                EnsureUiChromeCatalog();
                 EnsureBoardArtCatalog();
                 EnsureScene($"{SceneFolder}/0_SplashScene.unity", BuildSplashScene, overwriteExistingScenes);
                 EnsureScene($"{SceneFolder}/1_MainMenu.unity", BuildMenuScene, overwriteExistingScenes);
@@ -914,13 +931,7 @@ namespace DockIQ.Editor
             {
                 "Assets/Scripts",
                 "Assets/Prefabs",
-                "Assets/Resources",
-                "Assets/Sprites/Belts",
-                "Assets/Sprites/Devices",
-                "Assets/Sprites/Parcels",
-                "Assets/Sprites/Docks",
-                "Assets/Sprites/Robots",
-                "Assets/Sprites/UI",
+                "Assets/UI",
                 SceneFolder
             };
 
@@ -936,26 +947,92 @@ namespace DockIQ.Editor
             }
         }
 
-        private static void EnsureLogoResource()
-        {
-            const string src = "Assets/UI/GameLogo.png";
-            const string dst = "Assets/Resources/GameLogo.png";
-            if (File.Exists(src) && !File.Exists(dst))
-                AssetDatabase.CopyAsset(src, dst);
-
-            var importer = AssetImporter.GetAtPath(dst) as TextureImporter;
-            if (importer != null)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.SaveAndReimport();
-            }
-        }
-
         private const string BoardArtPath = "Assets/UI/BoardArtCatalog.asset";
+        private const string UiChromeCatalogPath = "Assets/UI/UiChromeCatalog.asset";
         private const string ParcelsTexturePath = "Assets/UI/Parcels.png";
         private const string GatesTexturePath = "Assets/UI/Gates.png";
         private const string AchievementsTexturePath = "Assets/UI/Achievements.png";
         private const string ArtAssetsPath = "Assets/UI/Art_assets.png";
+        private const string ButtonSheetPath = "Assets/UI/Button.png";
+        private const string PanelSheetPath = "Assets/UI/Panel.png";
+
+        [MenuItem("DockIQ/Import UI Chrome Catalog")]
+        public static void ImportUiChromeCatalogMenu()
+        {
+            EnsureFolders();
+            EnsureUiChromeCatalog();
+            Debug.Log("DOCKIQ_UI_CHROME_CATALOG_READY");
+        }
+
+        private static UiChromeCatalog EnsureUiChromeCatalog()
+        {
+            if (!AssetDatabase.IsValidFolder("Assets/UI"))
+                AssetDatabase.CreateFolder("Assets", "UI");
+
+            var catalog = AssetDatabase.LoadAssetAtPath<UiChromeCatalog>(UiChromeCatalogPath);
+            if (catalog == null)
+            {
+                catalog = ScriptableObject.CreateInstance<UiChromeCatalog>();
+                AssetDatabase.CreateAsset(catalog, UiChromeCatalogPath);
+            }
+
+            var buttons = LoadSpritesByName(ButtonSheetPath);
+            var panels = LoadSpritesByName(PanelSheetPath);
+            var so = new SerializedObject(catalog);
+
+            void Set(string field, Sprite sprite)
+            {
+                var prop = so.FindProperty(field);
+                if (prop != null && sprite != null)
+                    prop.objectReferenceValue = sprite;
+            }
+
+            Sprite ButtonSlice(string name) =>
+                buttons.TryGetValue(name, out var s) ? s : null;
+
+            Sprite PanelSlice(string name) =>
+                panels.TryGetValue(name, out var s) ? s : null;
+
+            Set("_primaryNormal", ButtonSlice("Button_0"));
+            Set("_primaryPressed", ButtonSlice("Button_1"));
+            Set("_primaryDisabled", ButtonSlice("Button_3"));
+            Set("_secondaryNormal", ButtonSlice("Button_4"));
+            Set("_secondaryPressed", ButtonSlice("Button_5"));
+            Set("_secondaryDisabled", ButtonSlice("Button_3"));
+            Set("_dangerNormal", ButtonSlice("Button_6"));
+            Set("_dangerPressed", ButtonSlice("Button_7"));
+            Set("_dangerDisabled", ButtonSlice("Button_3"));
+            Set("_panel", PanelSlice("Panel_0"));
+            Set("_backdrop", PanelSlice("Panel_0"));
+            Set("_missionPlate", ButtonSlice("Button_7"));
+            Set("_rowBackground", LoadFirstSprite("Assets/UI/ui_row_bg.png"));
+            Set("_levelUnlocked", LoadFirstSprite("Assets/UI/ui_level_unlocked.png"));
+            Set("_levelLocked", LoadFirstSprite("Assets/UI/ui_level_locked.png"));
+            Set("_levelSelected", LoadFirstSprite("Assets/UI/ui_level_selected.png"));
+            Set("_levelCompleted", LoadFirstSprite("Assets/UI/ui_level_completed.png"));
+            Set("_gameLogo", LoadFirstSprite("Assets/UI/GameLogo.png"));
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets();
+            UiChrome.Bind(catalog);
+            return catalog;
+        }
+
+        private static Sprite LoadFirstSprite(string texturePath)
+        {
+            if (!File.Exists(texturePath))
+                return null;
+
+            var assets = AssetDatabase.LoadAllAssetsAtPath(texturePath);
+            for (int i = 0; i < assets.Length; i++)
+            {
+                if (assets[i] is Sprite sprite)
+                    return sprite;
+            }
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(texturePath);
+        }
 
         /// <summary>Slice name inside Art_assets.png → BoardArtCatalog field.</summary>
         private static readonly (string sliceName, string field)[] ArtAssetBindings =
@@ -1243,34 +1320,38 @@ namespace DockIQ.Editor
 
         private static void RemoveLegacyUiResources()
         {
+            // Sprites now live under Assets/UI only — drop Resources copies when present.
             string[] legacy =
             {
-                "Assets/Resources/UI/Parcels.png",
-                "Assets/Resources/UI/Gates.png"
+                "Assets/Resources/GameLogo.png",
+                "Assets/Resources/UI"
             };
 
             bool removed = false;
             for (int i = 0; i < legacy.Length; i++)
             {
-                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(legacy[i]) == null && !File.Exists(legacy[i]))
+                string path = legacy[i];
+                if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path) == null &&
+                    !File.Exists(path) &&
+                    !AssetDatabase.IsValidFolder(path))
                     continue;
 
-                if (AssetDatabase.DeleteAsset(legacy[i]))
+                if (AssetDatabase.DeleteAsset(path))
                     removed = true;
             }
 
-            if (AssetDatabase.IsValidFolder("Assets/Resources/UI"))
+            if (AssetDatabase.IsValidFolder("Assets/Resources"))
             {
-                string[] remaining = AssetDatabase.FindAssets(string.Empty, new[] { "Assets/Resources/UI" });
+                string[] remaining = AssetDatabase.FindAssets(string.Empty, new[] { "Assets/Resources" });
                 if (remaining == null || remaining.Length == 0)
                 {
-                    AssetDatabase.DeleteAsset("Assets/Resources/UI");
+                    AssetDatabase.DeleteAsset("Assets/Resources");
                     removed = true;
                 }
             }
 
             if (removed)
-                Debug.Log("DockIQ: Removed legacy Resources/UI parcel and gate copies.");
+                Debug.Log("DockIQ: Removed legacy Resources UI sprites (using Assets/UI only).");
         }
 
         private static void BuildSplashScene()
@@ -1292,6 +1373,8 @@ namespace DockIQ.Editor
 
             var so = new SerializedObject(splash);
             so.FindProperty("_logoImage").objectReferenceValue = logo;
+            so.FindProperty("_fallbackLogo").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/GameLogo.png");
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.SaveScene(scene, $"{SceneFolder}/0_SplashScene.unity");
@@ -1612,8 +1695,12 @@ namespace DockIQ.Editor
             CreateAndWireTutorialUi(safe, hud);
 
             var boardArt = EnsureBoardArtCatalog();
+            var chrome = EnsureUiChromeCatalog();
             var controllerSo = new SerializedObject(controller);
             controllerSo.FindProperty("_boardArt").objectReferenceValue = boardArt;
+            var chromeProp = controllerSo.FindProperty("_uiChrome");
+            if (chromeProp != null)
+                chromeProp.objectReferenceValue = chrome;
             controllerSo.ApplyModifiedPropertiesWithoutUndo();
 
             var sceneSo = new SerializedObject(gameRoot.GetComponent<GameSceneController>());

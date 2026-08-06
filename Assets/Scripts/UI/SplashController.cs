@@ -14,16 +14,14 @@ namespace DockIQ.UI
         {
             if (_logoImage != null)
             {
-                var sprite = LoadLogo();
-                _logoImage.sprite = sprite != null ? sprite : _fallbackLogo;
+                var sprite = UiChrome.GameLogo;
+                if (sprite == null)
+                    sprite = _fallbackLogo;
+                if (sprite != null)
+                    _logoImage.sprite = sprite;
             }
 
             StartCoroutine(GoMenu());
-        }
-
-        private static Sprite LoadLogo()
-        {
-            return Resources.Load<Sprite>("GameLogo");
         }
 
         private IEnumerator GoMenu()

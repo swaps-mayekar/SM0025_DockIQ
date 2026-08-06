@@ -482,7 +482,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DockIQ.UI.SplashController
   _logoImage: {fileID: 1912065145}
-  _fallbackLogo: {fileID: 0}
+  _fallbackLogo: {fileID: 3822379315886523921, guid: 106f10134477547578b9194ff3051378, type: 3}
 --- !u!4 &1528186931
 Transform:
   m_ObjectHideFlags: 0
@@ -678,7 +678,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 3822379315886523921, guid: 106f10134477547578b9194ff3051378, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1

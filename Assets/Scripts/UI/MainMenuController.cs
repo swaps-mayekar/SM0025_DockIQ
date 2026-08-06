@@ -36,6 +36,7 @@ namespace DockIQ.UI
         [SerializeField] private AchievementRowView[] _achievementRows;
         [SerializeField] private Sprite[] _achievementIcons;
         [SerializeField] private BoardArtCatalog _boardArt;
+        [SerializeField] private UiChromeCatalog _uiChrome;
 
         [Header("How To Play")]
         [SerializeField] private GameObject _howToPlayPanel;
@@ -48,6 +49,7 @@ namespace DockIQ.UI
         private void Awake()
         {
             BindSceneFallbacks();
+            BindUiChrome();
             WireButtons();
             EnsureAchievementIcons();
             AchievementStore.EvaluateFromProgress();
@@ -240,6 +242,20 @@ namespace DockIQ.UI
             _achievementIcons = icons;
             if (_boardArt != null)
                 SpriteCatalog.Bind(_boardArt);
+        }
+
+        private void BindUiChrome()
+        {
+            if (_uiChrome == null)
+            {
+#if UNITY_EDITOR
+                _uiChrome = UnityEditor.AssetDatabase.LoadAssetAtPath<UiChromeCatalog>(
+                    "Assets/UI/UiChromeCatalog.asset");
+#endif
+            }
+
+            if (_uiChrome != null)
+                UiChrome.Bind(_uiChrome);
         }
 
         private void OnProgressChanged()

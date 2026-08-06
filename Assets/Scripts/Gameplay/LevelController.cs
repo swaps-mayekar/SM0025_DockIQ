@@ -12,6 +12,7 @@ namespace DockIQ.Gameplay
     public sealed class LevelController : MonoBehaviour
     {
         [SerializeField] private BoardArtCatalog _boardArt;
+        [SerializeField] private UiChromeCatalog _uiChrome;
 
         private LevelDef _level;
         private GridBoard _board;
@@ -43,6 +44,8 @@ namespace DockIQ.Gameplay
             _pendingTips.Clear();
 
             SpriteCatalog.Bind(_boardArt);
+            if (_uiChrome != null)
+                UiChrome.Bind(_uiChrome);
 
             _board = new GridBoard();
             _board.Build(level.ResolveLayers(), level.Movables, GameConstants.DefaultCellSize);
