@@ -24,9 +24,9 @@ MonoBehaviour:
   _panel: {fileID: -1198477067713850731, guid: 5a6562529bf0846de8405153b7a08f17, type: 3}
   _backdrop: {fileID: -1198477067713850731, guid: 5a6562529bf0846de8405153b7a08f17, type: 3}
   _missionPlate: {fileID: -1227836659, guid: 69c36b14bed1b484d9516b7b7dc6c782, type: 3}
-  _rowBackground: {fileID: 4487356341231620, guid: 187f52a18723aa0d2f4edd6bb7d87713, type: 3}
-  _levelUnlocked: {fileID: 884202752124779417, guid: c5792293ca54db3882f70a209f68e2e2, type: 3}
-  _levelLocked: {fileID: 245195698270297479, guid: 3f793ab11d2a3f9158900cce66bc2cb3, type: 3}
-  _levelSelected: {fileID: 128272353033114319, guid: c26ea86ba364e2791a5279369bfed01c, type: 3}
-  _levelCompleted: {fileID: 267758184339961102, guid: 407b9c7f0f9a503af66d65d77d728195, type: 3}
-  _gameLogo: {fileID: 3822379315886523921, guid: 106f10134477547578b9194ff3051378, type: 3}
+  _rowBackground: {fileID: 21300000, guid: 187f52a18723aa0d2f4edd6bb7d87713, type: 3}
+  _levelUnlocked: {fileID: -1196699257, guid: e5ec7666d1ed54c01b32fcd5fbb51782, type: 3}
+  _levelLocked: {fileID: 580401320, guid: e5ec7666d1ed54c01b32fcd5fbb51782, type: 3}
+  _levelSelected: {fileID: -326748839, guid: e5ec7666d1ed54c01b32fcd5fbb51782, type: 3}
+  _levelCompleted: {fileID: -7618626916060147338, guid: e5ec7666d1ed54c01b32fcd5fbb51782, type: 3}
+  _gameLogo: {fileID: 21300000, guid: 106f10134477547578b9194ff3051378, type: 3}
