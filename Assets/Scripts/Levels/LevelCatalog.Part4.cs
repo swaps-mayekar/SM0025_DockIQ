@@ -226,16 +226,18 @@ namespace DockIQ.Levels
                     },
                     new[]
                     {
+                        // Aligned shafts: sky bridge and lower approach both reach dock 1.
+                        // Crate slides on the shared x=7 column — clear one route at a time.
                         "...........",
-                        ".....E>....",
-                        "...........",
-                        ".....e>1...",
-                        "....>.>...."
+                        ".....E>>1..",
+                        ".......>...",
+                        ".....e>>1..",
+                        ".......>..."
                     }),
                 Movables = new[]
                 {
-                    // Blocks approach to dock; slide onto the spur — never covers elevators.
-                    Mov('O', 0, P(6, 1, 1), P(6, 0, 1), P(5, 0, 1))
+                    // Blocks the sky-bridge tile east of E; slide down the spur off the route.
+                    Mov('O', 0, P(7, 3, 1), P(7, 2, 1), P(7, 1, 1), P(7, 0, 1))
                 }
             });
 

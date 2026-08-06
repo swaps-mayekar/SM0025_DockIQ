@@ -144,7 +144,11 @@ namespace DockIQ.Gameplay
                 return;
             }
 
-            float z = IsoMath.DirToZDegrees(Facing);
+            // Production robot/decoy art is authored facing East (iso SE), same as
+            // belt arrows — use East-relative rotation so East stays at 0°.
+            float z = SpriteCatalog.IsProductionArt(_body.sprite)
+                ? IsoMath.ArrowZDegrees(Facing)
+                : IsoMath.DirToZDegrees(Facing);
             _body.transform.localRotation = Quaternion.Euler(0f, 0f, z);
         }
 
