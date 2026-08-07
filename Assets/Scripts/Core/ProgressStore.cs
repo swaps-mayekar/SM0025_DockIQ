@@ -107,6 +107,26 @@ namespace DockIQ.Core
             Save();
         }
 
+        /// <summary>
+        /// Wipes profile + selected level back to a fresh install (level 1, no tips/achievements).
+        /// </summary>
+        public static void ResetAll()
+        {
+            _current = new PlayerProfile();
+            PlayerPrefs.DeleteKey(GameConstants.PrefProfile);
+            PlayerPrefs.DeleteKey(GameConstants.PrefSelectedLevel);
+            PlayerPrefs.Save();
+            Save();
+            SetSelectedLevel(1);
+        }
+
+        /// <summary>Editor/QA helper: unlock every story level without marking them completed.</summary>
+        public static void UnlockAllLevels()
+        {
+            Current.highestUnlocked = GameConstants.TotalLevels;
+            Save();
+        }
+
         public static bool HasAchievement(string achievementId)
         {
             if (string.IsNullOrEmpty(achievementId))

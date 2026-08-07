@@ -120,6 +120,20 @@ namespace DockIQ.Editor
             Debug.Log("DockIQ: Tutorial tip progress cleared. Tips will show again on next play.");
         }
 
+        [MenuItem("DockIQ/Reset Player Progress")]
+        public static void ResetPlayerProgress()
+        {
+            ProgressStore.ResetAll();
+            Debug.Log("DockIQ: Player progress reset (level 1, tips & achievements cleared). Re-enter Play Mode if already playing.");
+        }
+
+        [MenuItem("DockIQ/Unlock All Levels (QA)")]
+        public static void UnlockAllLevelsForQa()
+        {
+            ProgressStore.UnlockAllLevels();
+            Debug.Log($"DockIQ: All {GameConstants.TotalLevels} levels unlocked for Free Play QA.");
+        }
+
         [MenuItem("DockIQ/Ensure Main Menu Modes")]
         public static void EnsureMainMenuModes()
         {

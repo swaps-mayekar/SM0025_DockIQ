@@ -389,7 +389,7 @@ namespace DockIQ.UI
                 bool unlocked = validLevel && ProgressStore.IsUnlocked(id);
 
                 if (view.Label != null)
-                    view.Label.text = unlocked ? id.ToString() : "Locked";
+                    view.Label.text = id.ToString();
 
                 var image = view.Button.GetComponent<Image>();
                 if (image != null)
