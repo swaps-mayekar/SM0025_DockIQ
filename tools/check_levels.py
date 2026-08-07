@@ -279,22 +279,15 @@ def try_step(grid, W, H, Lc, pos, facing, suppress=False):
         return None
 
     def transfer(target):
+        # Land on the far pad only; step-off happens on a later suppressed tick.
         if target is None or not inb(W, H, Lc, target):
             return None
         tc = grid[target[2]][target[0]][target[1]]
         if tc.typ == "empty":
             return None
-        dx, dy = OFF[facing]
-        after = (target[0] + dx, target[1] + dy, target[2])
-        if can_enter(grid, W, H, Lc, after):
-            ac = grid[after[2]][after[0]][after[1]]
-            if ac.typ not in ("lift", "elev"):
-                if is_clash(ac):
-                    return ("clash", after, facing)
-                return ("ok", after, facing)
         if is_clash(tc):
             return ("clash", target, facing)
-        return ("stay", target, facing)
+        return ("ok", target, facing)
 
     if not suppress and c.typ == "elev" and c.elev_target:
         return transfer(c.elev_target)
@@ -322,6 +315,7 @@ def simulate(level, grid, W, H, Lc):
         facing = sc.facing
     pos = (sx, sy, sL)
     suppress = False
+    pad_hold = 0
     target = level["target"]
     seen_loop = set()
 
@@ -329,7 +323,12 @@ def simulate(level, grid, W, H, Lc):
         c = grid[pos[2]][pos[0]][pos[1]]
         if c.typ == "dock":
             return c.dock == target
-        key = (pos, facing, suppress)
+
+        if pad_hold > 0:
+            pad_hold -= 1
+            continue
+
+        key = (pos, facing, suppress, pad_hold)
         if key in seen_loop:
             return False
         seen_loop.add(key)
@@ -348,7 +347,11 @@ def simulate(level, grid, W, H, Lc):
             else:
                 return False  # stuck
         else:
-            suppress = False
+            if used:
+                suppress = True
+                pad_hold = 1 if c.typ == "elev" else 0
+            else:
+                suppress = False
             pos = nxt
             facing = nf
             nc = grid[pos[2]][pos[0]][pos[1]]

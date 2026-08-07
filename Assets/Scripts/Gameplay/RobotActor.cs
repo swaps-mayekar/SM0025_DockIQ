@@ -16,9 +16,12 @@ namespace DockIQ.Gameplay
         public string Callsign { get; private set; }
 
         /// <summary>
-        /// After a lift/elevator drop that could not step off, ignore transfer for one tick.
+        /// After a lift/elevator drop, ignore transfer for one tick so the robot can step off.
         /// </summary>
         public bool SuppressLift { get; set; }
+
+        /// <summary>Extra simulation ticks to linger on a lift/elevator pad after arriving.</summary>
+        public int PadHoldTicks { get; set; }
 
         private SpriteRenderer _body;
         private SpriteRenderer _outline;
@@ -108,7 +111,13 @@ namespace DockIQ.Gameplay
             ApplyFacingVisual();
         }
 
-        public void MarkArrived() => Arrived = true;
+        public void MarkArrived()
+        {
+            Arrived = true;
+            // Decoys vanish into the gate once their slide finishes (or immediately if already there).
+            if (!IsRescue && !_moving)
+                gameObject.SetActive(false);
+        }
 
         public void TickVisual(float duration)
         {
@@ -119,6 +128,8 @@ namespace DockIQ.Gameplay
                 {
                     _t = 1f;
                     _moving = false;
+                    if (Arrived && !IsRescue)
+                        gameObject.SetActive(false);
                 }
 
                 transform.position = Vector3.Lerp(_from, _to, Mathf.SmoothStep(0f, 1f, _t));

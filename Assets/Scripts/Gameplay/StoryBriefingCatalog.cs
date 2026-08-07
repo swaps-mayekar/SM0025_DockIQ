@@ -62,7 +62,7 @@ namespace DockIQ.Gameplay
             // 21
             "Hour 21. A mobile mirror is out of place. #H21 carries night-vision optics for Dock 1. Slide the reflector into the bounce lane.",
             // 22
-            "Hour 22. Rotator relay. #H22 hauls a sealed antidote drum for Dock 2. Slide the turntable, choose the far gate, don't miss.",
+            "Hour 22. Rotator relay. #H22 hauls a sealed antidote drum for Dock 2. Slide the turntable down, then flip the fork — Dock 1 is the decoy gate.",
             // 23
             "Hour 23. Twin movers — turntable and scrap. #H23 carries emergency radio kits for Dock 1. Rebuild the route under pressure.",
             // 24

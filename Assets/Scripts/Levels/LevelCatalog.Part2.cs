@@ -200,20 +200,22 @@ namespace DockIQ.Levels
                 Id = 22, Title = "Rotator Relay",
                 RequestText = "Sealed antidote drum → Dock 2",
                 RobotCallsign = "#H22", DockName = "Dock 2", TargetDockId = 2,
-                TimeLimit = 44f, TickSeconds = 0.40f,
-                RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
+                TimeLimit = 48f, TickSeconds = 0.40f,
+                RobotStart = new Vector2Int(1, 5), RobotFacing = Dir.East,
                 Mechanics = MechanicsMask.Rotators | MechanicsMask.Movables | MechanicsMask.Switches,
                 Layers = L0(
                     "...........",
                     ".S>>>>>>...",
-                    "....+>>>2..",
-                    "...........",
+                    ".....v.....",
+                    ".....+>1...",
+                    ".....v.....",
+                    ".....+>>>2.",
                     "..........."),
                 Movables = new[]
                 {
-                    // Starts east of the junction; tap twice to slide onto (4,3).
-                    // Mode is already Right — path must NOT overlap the switch.
-                    Mov('R', 0, 2, P(6, 3), P(5, 3), P(4, 3))
+                    // Slide onto (5,5) to drop south. First junction defaults to wrong Dock 1 —
+                    // flip it south, then ride the lower switch east to Dock 2.
+                    Mov('R', 0, 2, P(7, 5), P(6, 5), P(5, 5))
                 }
             });
 

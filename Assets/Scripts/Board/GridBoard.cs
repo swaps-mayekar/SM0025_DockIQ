@@ -216,7 +216,7 @@ namespace DockIQ.Board
 
             IDevice device = def.Kind switch
             {
-                'R' or 'r' => new RotatorDevice(0),
+                'R' or 'r' => new RotatorDevice(def.RotatorMode),
                 'm' or 'M' => new ReflectorDevice(),
                 'O' or 'o' => new ObstacleDevice(),
                 _ => new ObstacleDevice()
@@ -433,6 +433,8 @@ namespace DockIQ.Board
         private bool TryExitTransfer(CellCoord pad, Dir facing, out CellCoord next, out Dir newFacing,
             out bool clash)
         {
+            // Always land on the far pad first so the parcel is visible there for a beat.
+            // Step-off happens on a later tick once SuppressLift is set by the controller.
             next = pad;
             newFacing = facing;
             clash = false;
@@ -440,17 +442,6 @@ namespace DockIQ.Board
             if (!InBounds(pad) || !Get(pad).IsTraversable)
                 return false;
 
-            Dir exit = facing;
-            CellCoord after = pad.WithOffset(DirUtil.ToOffset(exit));
-            if (CanEnterIgnoringHazard(after) && !Get(after).IsLift && !Get(after).IsElevator)
-            {
-                next = after;
-                newFacing = exit;
-                return TryEnter(next, out clash);
-            }
-
-            next = pad;
-            newFacing = facing;
             return TryEnter(next, out clash);
         }
 

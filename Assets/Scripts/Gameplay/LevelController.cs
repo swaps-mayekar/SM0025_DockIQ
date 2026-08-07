@@ -190,6 +190,12 @@ namespace DockIQ.Gameplay
                 if (robot.Arrived)
                     continue;
 
+                if (robot.PadHoldTicks > 0)
+                {
+                    robot.PadHoldTicks--;
+                    continue;
+                }
+
                 var cell = _board.Get(robot.Coord);
                 if (cell.IsDock)
                 {
@@ -209,17 +215,26 @@ namespace DockIQ.Gameplay
                     return;
                 }
 
-                bool stayedOnPad = next == robot.Coord;
                 bool usedTransfer = (cell.IsLift || cell.IsElevator) && !robot.SuppressLift;
 
-                if (stayedOnPad)
+                if (next == robot.Coord)
                 {
                     if (usedTransfer)
                         robot.SuppressLift = true;
                     continue;
                 }
 
-                robot.SuppressLift = false;
+                if (usedTransfer)
+                {
+                    // Linger on the far pad so the teleport reads clearly (esp. elevators).
+                    robot.SuppressLift = true;
+                    robot.PadHoldTicks = cell.IsElevator ? 1 : 0;
+                }
+                else
+                {
+                    robot.SuppressLift = false;
+                }
+
                 robot.BeginMove(next, newFacing, _board.CellToWorld(next, -0.1f));
 
                 var nextCell = _board.Get(next);

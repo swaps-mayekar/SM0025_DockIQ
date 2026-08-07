@@ -88,15 +88,17 @@ namespace DockIQ.Levels
                 RequestText = "Chilled vaccine crate → Chicago Dock",
                 RobotCallsign = "#C21", DockName = "Chicago Dock", TargetDockId = 1,
                 TimeLimit = 40f, TickSeconds = 0.42f,
-                RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
+                RobotStart = new Vector2Int(1, 5), RobotFacing = Dir.East,
                 DecoyStarts = new[] { new Vector2Int(1, 1), new Vector2Int(3, 1) },
                 DecoyFacings = new[] { Dir.East, Dir.East },
                 Mechanics = MechanicsMask.Switches,
                 Layers = L0(
                     "...........",
-                    ".S>+>+>+>1.",
-                    "...........",
-                    ".>>>>>>>...",
+                    ".S>+>+.....",
+                    ".....v.....",
+                    ".....+>2...",
+                    ".....v.....",
+                    ".>>>>+>>>1.",
                     "...........")
             });
 
