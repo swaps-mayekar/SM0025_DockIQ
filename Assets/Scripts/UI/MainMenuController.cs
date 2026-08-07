@@ -1,4 +1,3 @@
-using System.Collections;
 using DockIQ.Core;
 using DockIQ.Gameplay;
 using DockIQ.Levels;
@@ -15,14 +14,6 @@ namespace DockIQ.UI
     /// </summary>
     public sealed class MainMenuController : MonoBehaviour
     {
-        private const float PanelFadeSeconds = 0.22f;
-        private const float IntroStaggerSeconds = 0.07f;
-        private const float IntroSlideSeconds = 0.32f;
-        private const float IntroSlideOffset = -48f;
-        private const float LogoPulseAmount = 0.035f;
-        private const float LogoPulseSpeed = 2.2f;
-        private const float ModalPopScale = 0.94f;
-
         [Header("Home")]
         [SerializeField] private GameObject _homePanel;
         [SerializeField] private Button _storyButton;
@@ -55,34 +46,10 @@ namespace DockIQ.UI
         // Legacy builder wiring (kept so older scenes still compile/wire).
         [SerializeField] private Button _playButton;
 
-        private CanvasGroup _homeGroup;
-        private CanvasGroup _playGroup;
-        private CanvasGroup _achievementsGroup;
-        private CanvasGroup _howToPlayGroup;
-        private RectTransform _playCard;
-        private RectTransform _achievementsCard;
-        private RectTransform _howToPlayCard;
-        private RectTransform _logo;
-        private Vector3 _logoBaseScale = Vector3.one;
-        private HomeButtonMotion[] _homeButtons;
-        private Coroutine _transition;
-        private Coroutine _intro;
-        private GameObject _activePanel;
-        private bool _introPlaying;
-
-        private struct HomeButtonMotion
-        {
-            public Button Button;
-            public RectTransform Rect;
-            public CanvasGroup Group;
-            public Vector2 RestPos;
-        }
-
         private void Awake()
         {
             BindSceneFallbacks();
             BindUiChrome();
-            BindMotionTargets();
             WireButtons();
             EnsureAchievementIcons();
             AchievementStore.EvaluateFromProgress();
@@ -90,81 +57,13 @@ namespace DockIQ.UI
             RefreshLevels();
             RefreshStoryLabels();
             FitHowToPlayScroll();
-            ShowHomeImmediate();
+            ShowHome();
             ProgressStore.Changed += OnProgressChanged;
-        }
-
-        private void Start()
-        {
-            _intro = StartCoroutine(PlayHomeIntro());
-        }
-
-        private void Update()
-        {
-            if (_logo == null || _introPlaying)
-                return;
-
-            float pulse = 1f + Mathf.Sin(Time.unscaledTime * LogoPulseSpeed) * LogoPulseAmount;
-            _logo.localScale = _logoBaseScale * pulse;
         }
 
         private void OnDestroy()
         {
             ProgressStore.Changed -= OnProgressChanged;
-        }
-
-        private void BindMotionTargets()
-        {
-            _homeGroup = UiMotion.EnsureCanvasGroup(_homePanel);
-            _playGroup = UiMotion.EnsureCanvasGroup(_playPanel);
-            _achievementsGroup = UiMotion.EnsureCanvasGroup(_achievementsPanel);
-            _howToPlayGroup = UiMotion.EnsureCanvasGroup(_howToPlayPanel);
-
-            _playCard = FindCard(_playPanel);
-            _achievementsCard = FindCard(_achievementsPanel);
-            _howToPlayCard = FindCard(_howToPlayPanel);
-
-            var logoGo = FindNamed("GameLogo");
-            if (logoGo != null)
-            {
-                _logo = logoGo.transform as RectTransform;
-                if (_logo != null)
-                    _logoBaseScale = _logo.localScale;
-            }
-
-            _homeButtons = BuildHomeButtons();
-        }
-
-        private HomeButtonMotion[] BuildHomeButtons()
-        {
-            var buttons = new[] { _storyButton, _freePlayButton, _achievementsButton, _howToPlayButton };
-            var list = new HomeButtonMotion[buttons.Length];
-            for (int i = 0; i < buttons.Length; i++)
-            {
-                var button = buttons[i];
-                if (button == null)
-                    continue;
-
-                var rt = button.transform as RectTransform;
-                list[i] = new HomeButtonMotion
-                {
-                    Button = button,
-                    Rect = rt,
-                    Group = UiMotion.EnsureCanvasGroup(button.gameObject),
-                    RestPos = rt != null ? rt.anchoredPosition : Vector2.zero
-                };
-            }
-
-            return list;
-        }
-
-        private static RectTransform FindCard(GameObject panel)
-        {
-            if (panel == null)
-                return null;
-
-            var card = panel.transform.Find("Card");
-            return card as RectTransform;
         }
 
         /// <summary>
@@ -368,243 +267,39 @@ namespace DockIQ.UI
 
         private void ShowHome()
         {
+            SetPanel(_homePanel, true);
+            SetPanel(_playPanel, false);
+            SetPanel(_achievementsPanel, false);
+            SetPanel(_howToPlayPanel, false);
             RefreshStoryLabels();
-            TransitionTo(_homePanel, _homeGroup, null, false);
         }
 
         private void ShowFreePlay()
         {
+            SetPanel(_homePanel, false);
+            SetPanel(_playPanel, true);
+            SetPanel(_achievementsPanel, false);
+            SetPanel(_howToPlayPanel, false);
             RefreshLevels();
-            TransitionTo(_playPanel, _playGroup, _playCard, true);
         }
 
         private void ShowAchievements()
         {
+            SetPanel(_homePanel, false);
+            SetPanel(_playPanel, false);
+            SetPanel(_achievementsPanel, true);
+            SetPanel(_howToPlayPanel, false);
             RefreshAchievements();
-            TransitionTo(_achievementsPanel, _achievementsGroup, _achievementsCard, true);
         }
 
         private void ShowHowToPlay()
         {
+            SetPanel(_homePanel, false);
+            SetPanel(_playPanel, false);
+            SetPanel(_achievementsPanel, false);
+            SetPanel(_howToPlayPanel, true);
             // Body copy is scene-authored — do not overwrite at runtime.
             FitHowToPlayScroll();
-            TransitionTo(_howToPlayPanel, _howToPlayGroup, _howToPlayCard, true);
-        }
-
-        private void ShowHomeImmediate()
-        {
-            SetPanelVisible(_homePanel, _homeGroup, true, 1f);
-            SetPanelVisible(_playPanel, _playGroup, false, 0f);
-            SetPanelVisible(_achievementsPanel, _achievementsGroup, false, 0f);
-            SetPanelVisible(_howToPlayPanel, _howToPlayGroup, false, 0f);
-            ResetCardScale(_playCard);
-            ResetCardScale(_achievementsCard);
-            ResetCardScale(_howToPlayCard);
-            _activePanel = _homePanel;
-            PrepareHomeIntroPose();
-        }
-
-        private void PrepareHomeIntroPose()
-        {
-            if (_homeButtons == null)
-                return;
-
-            for (int i = 0; i < _homeButtons.Length; i++)
-            {
-                var item = _homeButtons[i];
-                if (item.Group == null || item.Rect == null)
-                    continue;
-
-                item.Group.alpha = 0f;
-                item.Group.interactable = false;
-                item.Group.blocksRaycasts = false;
-                item.Rect.anchoredPosition = item.RestPos + new Vector2(0f, IntroSlideOffset);
-            }
-        }
-
-        private IEnumerator PlayHomeIntro()
-        {
-            _introPlaying = true;
-
-            if (_logo != null)
-            {
-                var logoGroup = UiMotion.EnsureCanvasGroup(_logo.gameObject);
-                logoGroup.alpha = 0f;
-                _logo.localScale = _logoBaseScale * 0.88f;
-
-                float t = 0f;
-                const float logoIn = 0.4f;
-                while (t < 1f)
-                {
-                    t += Time.unscaledDeltaTime / logoIn;
-                    float s = UiMotion.Smooth01(t);
-                    logoGroup.alpha = s;
-                    _logo.localScale = Vector3.Lerp(_logoBaseScale * 0.88f, _logoBaseScale, s);
-                    yield return null;
-                }
-
-                logoGroup.alpha = 1f;
-                _logo.localScale = _logoBaseScale;
-            }
-
-            if (_homeButtons != null && _homeButtons.Length > 0)
-            {
-                float elapsed = 0f;
-                float total = IntroSlideSeconds + IntroStaggerSeconds * Mathf.Max(0, _homeButtons.Length - 1);
-
-                while (elapsed < total)
-                {
-                    elapsed += Time.unscaledDeltaTime;
-                    for (int i = 0; i < _homeButtons.Length; i++)
-                    {
-                        var item = _homeButtons[i];
-                        if (item.Group == null || item.Rect == null)
-                            continue;
-
-                        float localT = (elapsed - i * IntroStaggerSeconds) / IntroSlideSeconds;
-                        float s = UiMotion.Smooth01(localT);
-                        item.Group.alpha = s;
-                        item.Rect.anchoredPosition = Vector2.Lerp(
-                            item.RestPos + new Vector2(0f, IntroSlideOffset),
-                            item.RestPos,
-                            s);
-                    }
-
-                    yield return null;
-                }
-
-                RestoreHomeButtonsVisible();
-            }
-
-            _introPlaying = false;
-            _intro = null;
-        }
-
-        private void TransitionTo(GameObject panel, CanvasGroup group, RectTransform card, bool popIn)
-        {
-            if (panel == null || panel == _activePanel)
-                return;
-
-            if (_intro != null)
-            {
-                StopCoroutine(_intro);
-                _intro = null;
-                FinishHomeIntroImmediate();
-            }
-
-            if (_transition != null)
-                StopCoroutine(_transition);
-
-            _transition = StartCoroutine(AnimatePanelSwitch(panel, group, card, popIn));
-        }
-
-        private IEnumerator AnimatePanelSwitch(
-            GameObject panel,
-            CanvasGroup group,
-            RectTransform card,
-            bool popIn)
-        {
-            CanvasGroup fromGroup = GroupFor(_activePanel);
-            if (fromGroup != null && _activePanel != null && _activePanel.activeSelf)
-            {
-                fromGroup.interactable = false;
-                fromGroup.blocksRaycasts = false;
-                yield return UiMotion.Fade(fromGroup, fromGroup.alpha, 0f, PanelFadeSeconds * 0.75f);
-            }
-            else
-            {
-                SetPanelVisible(_homePanel, _homeGroup, false, 0f);
-                SetPanelVisible(_playPanel, _playGroup, false, 0f);
-                SetPanelVisible(_achievementsPanel, _achievementsGroup, false, 0f);
-                SetPanelVisible(_howToPlayPanel, _howToPlayGroup, false, 0f);
-            }
-
-            _activePanel = panel;
-
-            if (popIn && card != null)
-            {
-                yield return UiMotion.FadeScale(
-                    group,
-                    card,
-                    0f,
-                    1f,
-                    ModalPopScale,
-                    1f,
-                    PanelFadeSeconds);
-            }
-            else
-            {
-                if (panel == _homePanel)
-                    RestoreHomeButtonsVisible();
-
-                yield return UiMotion.Fade(group, 0f, 1f, PanelFadeSeconds);
-            }
-
-            _transition = null;
-        }
-
-        private void FinishHomeIntroImmediate()
-        {
-            _introPlaying = false;
-            if (_logo != null)
-            {
-                var logoGroup = UiMotion.EnsureCanvasGroup(_logo.gameObject);
-                logoGroup.alpha = 1f;
-                _logo.localScale = _logoBaseScale;
-            }
-
-            RestoreHomeButtonsVisible();
-        }
-
-        private void RestoreHomeButtonsVisible()
-        {
-            if (_homeButtons == null)
-                return;
-
-            for (int i = 0; i < _homeButtons.Length; i++)
-            {
-                var item = _homeButtons[i];
-                if (item.Group == null || item.Rect == null)
-                    continue;
-
-                item.Group.alpha = 1f;
-                item.Group.interactable = true;
-                item.Group.blocksRaycasts = true;
-                item.Rect.anchoredPosition = item.RestPos;
-            }
-        }
-
-        private CanvasGroup GroupFor(GameObject panel)
-        {
-            if (panel == _homePanel)
-                return _homeGroup;
-            if (panel == _playPanel)
-                return _playGroup;
-            if (panel == _achievementsPanel)
-                return _achievementsGroup;
-            if (panel == _howToPlayPanel)
-                return _howToPlayGroup;
-            return null;
-        }
-
-        private static void SetPanelVisible(GameObject panel, CanvasGroup group, bool active, float alpha)
-        {
-            if (panel == null)
-                return;
-
-            panel.SetActive(active);
-            if (group == null)
-                return;
-
-            group.alpha = alpha;
-            group.interactable = active;
-            group.blocksRaycasts = active;
-        }
-
-        private static void ResetCardScale(RectTransform card)
-        {
-            if (card != null)
-                card.localScale = Vector3.one;
         }
 
         /// <summary>
@@ -652,6 +347,12 @@ namespace DockIQ.UI
             bodyRt.sizeDelta = new Vector2(bodyRt.sizeDelta.x, height);
 
             LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+        }
+
+        private static void SetPanel(GameObject panel, bool active)
+        {
+            if (panel != null)
+                panel.SetActive(active);
         }
 
         private void RefreshStoryLabels()
