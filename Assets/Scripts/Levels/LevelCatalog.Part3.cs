@@ -201,13 +201,13 @@ namespace DockIQ.Levels
                         "...........",
                         ".S>+>E.....",
                         "...v.......",
-                        "...+>>>1...",
+                        "...+>>>2...",
                         "..........."
                     },
                     new[]
                     {
                         "...........",
-                        ".....E>+>2.",
+                        ".....E>+>1.",
                         "...........",
                         "...........",
                         "..........."
@@ -261,9 +261,9 @@ namespace DockIQ.Levels
                     new[]
                     {
                         "...........",
-                        "....E>+>1..",
-                        "......M....",
-                        "...........",
+                        "....E>+>>M.",
+                        "......v....",
+                        "......+>>1.",
                         "..........."
                     })
             });
@@ -274,7 +274,7 @@ namespace DockIQ.Levels
                 RequestText = "Reactor coolant sample → Dock 1",
                 RobotCallsign = "#J37", DockName = "Dock 1", TargetDockId = 1,
                 TimeLimit = 48f, TickSeconds = 0.40f,
-                RobotStart = new Vector2Int(1, 3), RobotFacing = Dir.East,
+                RobotStart = new Vector2Int(1, 4), RobotFacing = Dir.East,
                 Mechanics = MechanicsMask.Elevators | MechanicsMask.Switches,
                 Layers = L2(
                     new[]
@@ -282,8 +282,9 @@ namespace DockIQ.Levels
                         "...........",
                         ".S>+>E.....",
                         "...v.......",
-                        "...+>>>e>1.",
-                        "..........."
+                        "...+>>>e...",
+                        ".......v...",
+                        ".......+>>1"
                     },
                     new[]
                     {
@@ -291,6 +292,7 @@ namespace DockIQ.Levels
                         ".....E>+...",
                         ".......v...",
                         ".......e...",
+                        "...........",
                         "..........."
                     })
             });
@@ -317,9 +319,9 @@ namespace DockIQ.Levels
                     new[]
                     {
                         "...........",
-                        ".......E>+2",
+                        ".......E>+1",
                         ".........v.",
-                        ".........+1",
+                        ".........+2",
                         "..........."
                     })
             });

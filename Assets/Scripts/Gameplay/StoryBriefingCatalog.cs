@@ -86,21 +86,21 @@ namespace DockIQ.Gameplay
             // 33
             "Hour 33. You start upstairs. #J33 carries a descending priority crate for Dock 1 — ride down and finish on the ground bay.",
             // 34
-            "Hour 34. Split floors. #J34 holds a VIP jewelry vault case for Dock 2. Take the upper path; the lower bay is the wrong story.",
+            "Hour 34. Split floors. #J34 holds a VIP jewelry vault case for Dock 2. Stay on the ground fork — the upper bay is the wrong story.",
             // 35
             "Hour 35. Bridge then elevator. #J35 carries water-purification membranes for Dock 1. Open the bridge, ride up, deliver.",
             // 36
-            "Hour 36. Mezzanine mirror. #J36 hauls a fiber-optic spine for Dock 1. Bounce upstairs and send the robot into the high dock.",
+            "Hour 36. Mezzanine mirror. #J36 hauls a fiber-optic spine for Dock 1. Ascend, then turn before the mirror — bounce into it and the run loops until the window closes.",
             // 37
-            "Hour 37. Dual shafts — pick the matching elevator pair. #J37 carries a reactor coolant sample for Dock 1. Wrong shaft wastes the hour.",
+            "Hour 37. Dual shafts. #J37 carries a reactor coolant sample for Dock 1. Ride E up, turn to e, drop south into the bay — don't climb the return shaft early.",
             // 38
-            "Hour 38. Stacked yard. #J38 holds a twin-deck medical pallet for Dock 2. Navigate both floors and take the far gate.",
+            "Hour 38. Stacked yard. #J38 holds a twin-deck medical pallet for Dock 2. Ascend, then turn past Dock 1 — the far lower gate is the real bay.",
             // 39
             "Hour 39. Full toolkit. #K39 carries a multi-system trauma crate for Dock 1. Bridge, hoist, and switch — no room for error.",
             // 40
             "Hour 40. Scrap then shaft. #K40 hauls an elevator-only battery bank for Dock 1. Clear the scrap and ride up before power fails.",
             // 41
-            "Hour 41. Mirror on the mezzanine. #K41 carries a sealed film archive for Dock 1. Bounce on the upper deck into the bay.",
+            "Hour 41. Mirror on the mezzanine. #K41 carries a sealed film archive for Dock 1. Slide the upper mirror off the approach, then send it into the bay.",
             // 42
             "Hour 42. Turntable upstairs. #K42 holds a high-bay vaccine tray for Dock 2. Slide the rotator on layer 1 and take the far dock.",
             // 43

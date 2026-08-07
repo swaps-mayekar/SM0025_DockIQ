@@ -84,7 +84,8 @@ namespace DockIQ.Levels
                     }),
                 Movables = new[]
                 {
-                    Mov('m', 0, P(6, 2, 1), P(6, 3, 1), P(7, 3, 1))
+                    // Starts on the dock approach — slide it onto the spur or the run bounces forever.
+                    Mov('m', 0, P(7, 3, 1), P(6, 3, 1), P(6, 2, 1))
                 }
             });
 

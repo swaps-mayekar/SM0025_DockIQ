@@ -23,6 +23,8 @@ namespace DockIQ.Gameplay
         /// <summary>Extra simulation ticks to linger on a lift/elevator pad after arriving.</summary>
         public int PadHoldTicks { get; set; }
 
+        private const float VisualYOffset = 0.14f;
+
         private SpriteRenderer _body;
         private SpriteRenderer _outline;
         private Vector3 _from;
@@ -31,6 +33,8 @@ namespace DockIQ.Gameplay
         private bool _moving;
         private bool _useParcelArt;
         private float _outlineBaseScale = 1.2f;
+        /// <summary>Board Origin.y — strip from world Y so depth matches <see cref="IsoMath.DepthOrder"/>.</summary>
+        private float _boardOriginY;
 
         public void Init(CellCoord cell, Dir facing, bool isRescue, string callsign, Vector3 worldPos,
             int levelId = 0)
@@ -39,10 +43,11 @@ namespace DockIQ.Gameplay
             Facing = facing;
             IsRescue = isRescue;
             Callsign = callsign;
-            transform.position = worldPos + new Vector3(0f, 0.14f, 0f);
+            _boardOriginY = worldPos.y - IsoMath.CellToWorld(cell).y;
+            transform.position = worldPos + new Vector3(0f, VisualYOffset, 0f);
             _from = _to = transform.position;
 
-            _body = CreateChild("Body", IsoMath.DepthOrder(cell, 5));
+            _body = CreateChild("Body", 0);
 
             Sprite parcel = isRescue ? SpriteCatalog.ParcelForLevel(levelId) : null;
             if (parcel != null)
@@ -77,7 +82,7 @@ namespace DockIQ.Gameplay
 
             if (isRescue)
             {
-                _outline = CreateChild("Outline", IsoMath.DepthOrder(cell, 4));
+                _outline = CreateChild("Outline", 0);
                 Sprite ring = SpriteCatalog.SelectionRingOrFallback();
                 _outline.sprite = ring;
                 bool ringArt = SpriteCatalog.IsProductionArt(ring);
@@ -97,6 +102,8 @@ namespace DockIQ.Gameplay
                     _outline.transform.localScale = Vector3.one * _outlineBaseScale;
                 }
             }
+
+            ApplyDepth();
         }
 
         public void BeginMove(CellCoord next, Dir newFacing, Vector3 worldPos)
@@ -104,7 +111,7 @@ namespace DockIQ.Gameplay
             Coord = next;
             Facing = newFacing;
             _from = transform.position;
-            _to = worldPos + new Vector3(0f, 0.14f, 0f);
+            _to = worldPos + new Vector3(0f, VisualYOffset, 0f);
             _t = 0f;
             _moving = true;
             ApplyDepth();
@@ -165,8 +172,11 @@ namespace DockIQ.Gameplay
 
         private void ApplyDepth()
         {
-            // Keep sorting synced with interpolated Y so belts don't pop over parcels mid-step.
-            int dynamicDepth = Coord.Layer * 1000 - Mathf.RoundToInt(transform.position.y * 40f);
+            // Match IsoMath.DepthOrder: use board-local ground Y (not centered world Y / visual lift).
+            // Otherwise parcels sort above every device after the board Origin shift.
+            float localY = transform.position.y - _boardOriginY - VisualYOffset
+                           - Coord.Layer * IsoMath.LayerHeight;
+            int dynamicDepth = Coord.Layer * 1000 - Mathf.RoundToInt(localY * 40f);
             if (_body != null)
                 _body.sortingOrder = dynamicDepth + 5;
             if (_outline != null)
